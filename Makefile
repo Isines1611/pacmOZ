@@ -20,8 +20,14 @@ all:
 	$(OZC) -c Graphics.oz
 	$(OZC) -c Main.oz
 
-	$(OZC) -c pacmOz000Basic.oz -o "pacmOz000Basic.ozf"
+	$(OZC) -c pacmOz000Basic.oz -o "PacmOz000Basic.ozf"
 run:
 	$(OZENGINE) Main.ozf
 clean:
 	rm *.ozf
+
+agent:
+	$(OZC) -c pacmOz000Basic.oz -o "PacmOz000Basic.ozf"
+	
+main:
+	$(OZC) -c Main.oz -o "Main.ozf"	

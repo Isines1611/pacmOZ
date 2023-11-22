@@ -12,42 +12,74 @@ define
     % Helper => returns an integer between [0, N]
     fun {GetRandInt N} {OS.rand} mod N end
     
-    % TODO: Complete this concurrent functional agent (PacmOz/GhOzt)
-    fun {Agent State}
-        fun {MovedTo Msg}
-            RandInt = {GetRandInt 10}
-        in
-            {System.show "here"}
-            
-            {System.show log(RandInt Msg)}
-            {Agent State}
-        end
+    % Agent object with data
+    fun {Agent}
+        ID = {NewCell 0}
+        MAZE = {NewCell 0}
+        PORT = {NewCell 0}
+
+        proc {SetID X} ID := X end
+        fun {GetID} @ID end
+        proc {SetMAZE X} MAZE := X end
+        fun {GetMAZE} @MAZE end
+        proc {SetPORT X} PORT := X end
+        fun {GetPORT} @PORT end
     in
-        % TODO: complete the interface and discard and report unknown messages
-        fun {$ Msg}
-            Dispatch = {Label Msg}
-            Interface = interface(
-                'movedTo': MovedTo
-            )
-        in
-            {Interface.Dispatch Msg}
-        end
+        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT)
     end
 
-    % Please note: Msg | Upcoming is a pattern match of the Stream argument
+    % All usefull functions/proc
+    proc {Sum X Y}
+        Res = X+Y
+    in
+        {System.show Res}
+    end
+
+    proc {Print Msg}
+        {System.show Msg}
+    end
+
+    proc {Moving Dir Instance}
+        {Send {Instance.getMAZE} moveTo({Instance.getID} Dir)}
+    end
+
+    % Handler
     proc {Handler Msg | Upcoming Instance}
-        if Msg \= shutdown() then {Handler Upcoming {Instance Msg}} end
+        case Msg of shutdown() then
+            {System.show 'Message Shutdown'}
+        [] sum(X Y) then
+            {Sum X Y}
+
+        [] print(M) then
+            {Print M}
+
+        [] movedTo(Dir) then
+            {System.show Dir}
+            {Moving Dir Instance}
+
+        [] getID() then
+            {System.show {Instance.getMAZE}}
+
+        [] rand(X) then
+            {System.show {GetRandInt X}}
+
+
+        else 
+            {System.show 'Unknown Message'}
+        end
+
+        {Handler Upcoming Instance}
     end
 
     fun {SpawnAgent init(Id GCPort Maze)}
         Stream
         Port = {NewPort Stream}
+        Instance
 
-        Instance = {Agent state(
-            'id': Id
-            'maze': Maze
-            'gcport': GCPort
-        )}
+        Instance = {Agent}
+        {Instance.setID Id}
+        {Instance.setMAZE Maze}
+        {Instance.setPORT GCPort}
     in
         thread {Handler Stream Instance} end
         Port

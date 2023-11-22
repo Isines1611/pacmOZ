@@ -13,11 +13,11 @@ define
         {Record.forAll Tracker proc {$ Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
     end
     % TODO: define here any auxiliary functions or procedures you may need
-    %...
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
     fun {GameController State}
         fun {MoveTo moveTo(Id Dir)}
+            {System.show 'moving'}
             {State.gui moveBot(Id Dir)}
             {GameController State}
         end
@@ -33,6 +33,7 @@ define
         %...
         
         % function to handle the movedTo message    % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
+        % Says to everyone that ID moved
         fun {MovedTo movedTo(Id Type X Y)}
             {System.show log(Id Type X Y)}
 
@@ -56,7 +57,7 @@ define
             if {HasFeature Msg Dispatch} then
                 {Interface.Dispatch Msg}
             else
-                % {System.show log('Unhandle message' Dispatch)}
+                %{System.show log('Unhandle message' Dispatch)}
                 {GameController State}
             end
         end
@@ -69,6 +70,8 @@ define
 
     % TODO: Spawn the agents
     proc {StartGame}
+        PacmozID
+        PacmozPort
         Stream
         Port = {NewPort Stream}
         GUI = {Graphics.spawn Port 30}
@@ -83,11 +86,23 @@ define
         )}
 
         {GUI updateScore(100)} % Update le score c'est bete mais ca marche
+
+        PacmozID = {GUI spawnBot('pacmoz' 1 1 $)}
+        PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
+
+        {Send PacmozPort 'movedTo'}
+        {Send PacmozPort sum(5 7)}
+
+        {Send PacmozPort movedTo(south)}
+        
     in
         % TODO: log the winning team name and the score then use {Application.exit 0}
+        {GUI dispawnPacgum(1 1)}
+        {GUI moveBot(PacmozID 'south')}
+
         {System.show 'TEAM'}
         {Handler Stream Instance}
-        
+        {Application.exit 0}
     end
 
     {StartGame}
