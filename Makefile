@@ -31,3 +31,6 @@ agent:
 	
 main:
 	$(OZC) -c Main.oz -o "Main.ozf"	
+
+graphics:
+	$(OZC) -c Graphics.oz -o "Graphics.ozf"	

@@ -39,8 +39,10 @@ define
         {System.show log('Print:' Msg)}
     end
 
-    proc {Moving Dir Instance}
-        {Send {Instance.getMAZE} moveTo({Instance.getID} Dir)}
+    proc {InfSouth Instance}
+        {Send {Instance.getMAZE} moveTo({Instance.getID} 'south')}
+        {Delay 2000}
+        {InfSouth Instance}
     end
 
     % Handler
@@ -55,15 +57,17 @@ define
             {Print M}
 
         [] movedTo(Dir) then
-            {System.show log('pacmOz movedTo:' Dir)}
-            {Moving Dir Instance}
+            {Send {Instance.getMAZE} moveTo({Instance.getID} Dir)}
 
         [] rand(X) then
             {System.show {GetRandInt X}}
 
+        [] inf then 
+            {InfSouth Instance}
+
 
         else 
-            {System.show log('Unknown Message:' Msg)}
+            {System.show log('PacmOZ Unknown Message:' Msg)}
         end
 
         {Handler Upcoming Instance}

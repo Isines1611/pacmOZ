@@ -19,14 +19,18 @@ define
         MAZE = {NewCell 0}
         SCORE = {NewCell 0}
 
+        MOVE = {NewCell 0}
+
         proc {SetGUI X} GUI := X end
         fun {GetGUI} @GUI end
         proc {SetMAZE X} MAZE := X end
         fun {GetMAZE} @MAZE end
         proc {SetSCORE X} SCORE := X end
         fun {GetSCORE} @SCORE end
+        proc {SetMOVE X} MOVE := X end
+        fun {GetMOVE} @MOVE end
     in
-        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE)
+        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE setMOVE:SetMOVE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE getMOVE:GetMOVE)
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
@@ -79,7 +83,7 @@ define
                 %...
             )
         in
-            if {HasFeature Msg Dispatch} then
+            if {HasFeature Interface Dispatch} then
                 {Interface.Dispatch Msg}
             else
                 %{System.show log('Unhandle message' Dispatch)}
@@ -97,10 +101,11 @@ define
     end
 
     proc {MoveTo ID Dir State}
-        {System.show 'moving'}
-
-        {{State.getGUI} moveBot(ID Dir)}
-        {{State.getGUI} update()}
+        {System.show log('moving' {State.getMOVE})}
+        if {State.getMOVE} == 0 then % 0 = true (peut move)    
+            {{State.getGUI} moveBot(ID Dir)}
+            {State.setMOVE 1}
+        end
     end
 
     % Please note: Msg | Upcoming is a pattern match of the Stream argument
@@ -123,11 +128,15 @@ define
         [] pacpowSpawned(X Y) then
             skip
 
+        [] movedTo(ID Type X Y) then
+            {Instance.setMOVE 0}
+
         else 
-            {System.show log('Unknown Message' Msg)}
+            {System.show log('Main Unknown Message' Msg)}
             %skip
         end
 
+        {{Instance.getGUI} update()}
         {Hand Upcoming Instance}
     end
 
@@ -155,9 +164,12 @@ define
 
         %{GUI updateScore(100)} % Update le score c'est bete mais ca marche
 
-        PacmozID = {GUI spawnBot('pacmoz' 1 1 $)}
+        {GUI spawnBot('pacmoz' 1 1 PacmozID)}
         %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
         PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Maze Port)}
+
+        {GUI moveBot(PacmozID 'south')}
+        {GUI moveBot(PacmozID 'south')}
 
         {Send PacmozPort 'movedTo'}
         {Send PacmozPort sum(5 7)}
@@ -165,7 +177,7 @@ define
         {Send PacmozPort movedTo(south)}
 
         {Send PacmozPort sum(5 7)}
-        {Send PacmozPort print(test)}
+        {Send PacmozPort inf}
         {Send PacmozPort movedTo(south)}
         
     in
@@ -173,6 +185,7 @@ define
        % {GUI dispawnPacgum(1 1)}
        % {GUI moveBot(PacmozID 'south')}
 
+        {GUI update()}
         {Hand Stream Instance}
         %{Handler Stream Instance}
         {Application.exit 0}
