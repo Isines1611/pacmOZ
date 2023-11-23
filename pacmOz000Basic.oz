@@ -18,14 +18,22 @@ define
         MAZE = {NewCell 0}
         PORT = {NewCell 0}
 
-        proc {SetID X} ID := X end
+        X = {NewCell 0}
+        Y = {NewCell 0}
+
+        proc {SetID N} ID := N end
         fun {GetID} @ID end
-        proc {SetMAZE X} MAZE := X end
+        proc {SetMAZE N} MAZE := N end
         fun {GetMAZE} @MAZE end
-        proc {SetPORT X} PORT := X end
+        proc {SetPORT N} PORT := N end
         fun {GetPORT} @PORT end
+
+        proc {SetX N} X := N end
+        fun {GetX} @X end
+        proc {SetY N} Y := N end
+        fun {GetY} @Y end
     in
-        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT)
+        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT setX:SetX setY:SetY getX:GetX getY:GetY)
     end
 
     % All usefull functions/proc
@@ -35,14 +43,20 @@ define
         {System.show log('Sum result = ' Res)}
     end
 
-    proc {Print Msg}
-        {System.show log('Print:' Msg)}
-    end
-
     proc {InfSouth Instance}
         {Send {Instance.getPORT} moveTo({Instance.getID} 'south')}
         {Delay 2000}
         {InfSouth Instance}
+    end
+
+    proc {BotMoved ID Instance X Y}
+        if {Instance.getID} == ID then 
+            {Instance.setX X}
+            {Instance.setY Y}
+            
+            {System.show maze(X Y '->' Y*29+X)}
+            {System.show {Nth {Instance.getMAZE} Y * 29 + X}}
+        end
     end
 
     % Handler
@@ -52,20 +66,25 @@ define
         [] sum(X Y) then
             {Sum X Y}
 
-        [] print(M) then
-            {Send {Instance.getPORT} increaseScore}
-            {Print M}
-
-        [] movedTo(Dir) then
-            {Send {Instance.getPORT} moveTo({Instance.getID} Dir)}
+        [] movedTo(ID Type X Y) then
+            {System.show 'new movedTo'}
+            thread {BotMoved ID Instance X Y} end
 
         [] rand(X) then
             {System.show {GetRandInt X}}
 
         [] inf then 
-            {InfSouth Instance}
+            thread {InfSouth Instance} end
 
+        [] increaseScore then 
+            {Send {Instance.getPORT} increaseScore}
 
+        [] test then
+            {System.show {Instance.getMAZE}}
+            {System.show {Nth {Instance.getMAZE} (1 * 29 + 1)}}
+            %{Nth {Instance.getMAZE} {Instance.getY} * 29 + {Instace.getX}}
+
+        
         else 
             {System.show log('PacmOZ Unknown Message:' Msg)}
         end

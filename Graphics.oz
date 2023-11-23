@@ -2,7 +2,7 @@ functor
 
 import
     OS
-    System
+    %System
     Application
     QTk at 'x-oz://system/wp/QTk.ozf'
 export
@@ -85,10 +85,8 @@ define
                 NewX = @x div 32
                 NewY = @y div 32
             in
-                {System.show 'sending'}
                 {Send GCPort movedTo(@id @type NewX NewY)}
                 'isMoving' := false
-                {System.show 'sent'}
             end
         end
 

@@ -9,8 +9,17 @@ import
 define
      % Check the Adjoin and AdjoinAt function, documentation: (http://mozart2.org/mozart-v1/doc-1.4.0/base/record.html#section.records.records)
 
-    proc {Broadcast Tracker Msg}
+    proc {Broadcaster Tracker Msg}
         {Record.forAll Tracker proc {$ Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
+    end
+
+    % Send MSG to all PORTS
+    proc {Broadcast PORTS Msg}
+        case PORTS of H|T then
+            {Send H Msg} 
+            {Broadcast T Msg}
+        [] nil then skip
+        end
     end
     % TODO: define here any auxiliary functions or procedures you may need
 
@@ -19,14 +28,19 @@ define
         MAZE = {NewCell 0}
         SCORE = {NewCell 0}
 
+        PORTS = {NewCell nil}
+
         proc {SetGUI X} GUI := X end
         fun {GetGUI} @GUI end
         proc {SetMAZE X} MAZE := X end
         fun {GetMAZE} @MAZE end
         proc {SetSCORE X} SCORE := X end
         fun {GetSCORE} @SCORE end
+
+        proc {AppendPORTS X} PORTS := X|@PORTS end
+        fun {GetPORTS} @PORTS end
     in
-        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE)
+        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE appendPORTS:AppendPORTS getPORTS:GetPORTS)
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
@@ -42,7 +56,7 @@ define
             NewItems = {Adjoin State.items items(Index: gum('alive': true) 'ngum': State.items.ngum + 1)}
         in
             {System.show 'spawn pacgum'}
-            {Broadcast State.tracker pacgumSpawned(X Y)}
+            {Broadcaster State.tracker pacgumSpawned(X Y)}
             {GameController {AdjoinAt State 'items' NewItems}}
         end
         % TODO: add other functions to handle the messages here
@@ -119,6 +133,7 @@ define
 
         [] movedTo(ID Type X Y) then
             {System.show log('bot' ID 'has moved towards' X Y)}
+            {Broadcast {Instance.getPORTS} movedTo(ID Type X Y)}
 
         else 
             {System.show log('Main Unknown Message' Msg)}
@@ -151,17 +166,17 @@ define
         %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
         PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
 
+        {Instance.appendPORTS PacmozPort}
+
+        {System.show {Instance.getPORTS}}
+        
+        %%% MSG
         {GUI moveBot(PacmozID 'south')}
         {GUI moveBot(PacmozID 'south')}
 
-        {Send PacmozPort 'movedTo'}
-        {Send PacmozPort sum(5 7)}
-        {Send PacmozPort print(test)}
+        {Send PacmozPort test}
         {Send PacmozPort movedTo(south)}
-
-        {Send PacmozPort sum(5 7)}
         {Send PacmozPort inf}
-        {Send PacmozPort movedTo(south)}
         
     in
         % TODO: log the winning team name and the score then use {Application.exit 0}
