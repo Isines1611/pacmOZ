@@ -19,18 +19,14 @@ define
         MAZE = {NewCell 0}
         SCORE = {NewCell 0}
 
-        MOVE = {NewCell 0}
-
         proc {SetGUI X} GUI := X end
         fun {GetGUI} @GUI end
         proc {SetMAZE X} MAZE := X end
         fun {GetMAZE} @MAZE end
         proc {SetSCORE X} SCORE := X end
         fun {GetSCORE} @SCORE end
-        proc {SetMOVE X} MOVE := X end
-        fun {GetMOVE} @MOVE end
     in
-        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE setMOVE:SetMOVE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE getMOVE:GetMOVE)
+        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE)
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
@@ -101,19 +97,12 @@ define
     end
 
     proc {MoveTo ID Dir State}
-        {System.show log('moving' {State.getMOVE})}
-        if {State.getMOVE} == 0 then % 0 = true (peut move)    
-            {{State.getGUI} moveBot(ID Dir)}
-            {State.setMOVE 1}
-        end
+        {{State.getGUI} moveBot(ID Dir)}
+        {{State.getGUI} update()}
     end
 
     % Please note: Msg | Upcoming is a pattern match of the Stream argument
     proc {Handler Msg | Upcoming Instance}
-        {Handler Upcoming {Instance Msg}}
-    end
-
-    proc {Hand Msg | Upcoming Instance}
         case Msg of shutdown() then
             {System.show 'Message Shutdown'}
         [] increaseScore then
@@ -129,15 +118,15 @@ define
             skip
 
         [] movedTo(ID Type X Y) then
-            {Instance.setMOVE 0}
+            {System.show log('bot' ID 'has moved towards' X Y)}
 
         else 
             {System.show log('Main Unknown Message' Msg)}
             %skip
         end
 
-        {{Instance.getGUI} update()}
-        {Hand Upcoming Instance}
+        %{{Instance.getGUI} update()}
+        {Handler Upcoming Instance}
     end
 
     % TODO: Spawn the agents
@@ -151,12 +140,6 @@ define
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        /* Instanc = {GameController state(
-            'gui': GUI
-            'maze': Maze
-            'score': 0
-        )} */
-
         Instance = {GC}
         {Instance.setGUI GUI}
         {Instance.setMAZE Maze}
@@ -166,7 +149,7 @@ define
 
         {GUI spawnBot('pacmoz' 1 1 PacmozID)}
         %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
-        PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Maze Port)}
+        PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
 
         {GUI moveBot(PacmozID 'south')}
         {GUI moveBot(PacmozID 'south')}
@@ -186,8 +169,7 @@ define
        % {GUI moveBot(PacmozID 'south')}
 
         {GUI update()}
-        {Hand Stream Instance}
-        %{Handler Stream Instance}
+        {Handler Stream Instance}
         {Application.exit 0}
     end
 

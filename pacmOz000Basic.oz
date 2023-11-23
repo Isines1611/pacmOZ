@@ -40,7 +40,7 @@ define
     end
 
     proc {InfSouth Instance}
-        {Send {Instance.getMAZE} moveTo({Instance.getID} 'south')}
+        {Send {Instance.getPORT} moveTo({Instance.getID} 'south')}
         {Delay 2000}
         {InfSouth Instance}
     end
@@ -53,11 +53,11 @@ define
             {Sum X Y}
 
         [] print(M) then
-            {Send {Instance.getMAZE} increaseScore}
+            {Send {Instance.getPORT} increaseScore}
             {Print M}
 
         [] movedTo(Dir) then
-            {Send {Instance.getMAZE} moveTo({Instance.getID} Dir)}
+            {Send {Instance.getPORT} moveTo({Instance.getID} Dir)}
 
         [] rand(X) then
             {System.show {GetRandInt X}}
