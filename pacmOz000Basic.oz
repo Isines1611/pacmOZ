@@ -32,11 +32,11 @@ define
     proc {Sum X Y}
         Res = X+Y
     in
-        {System.show Res}
+        {System.show log('Sum result = ' Res)}
     end
 
     proc {Print Msg}
-        {System.show Msg}
+        {System.show log('Print:' Msg)}
     end
 
     proc {Moving Dir Instance}
@@ -51,21 +51,19 @@ define
             {Sum X Y}
 
         [] print(M) then
+            {Send {Instance.getMAZE} increaseScore}
             {Print M}
 
         [] movedTo(Dir) then
-            {System.show Dir}
+            {System.show log('pacmOz movedTo:' Dir)}
             {Moving Dir Instance}
-
-        [] getID() then
-            {System.show {Instance.getMAZE}}
 
         [] rand(X) then
             {System.show {GetRandInt X}}
 
 
         else 
-            {System.show 'Unknown Message'}
+            {System.show log('Unknown Message:' Msg)}
         end
 
         {Handler Upcoming Instance}
