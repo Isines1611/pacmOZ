@@ -29,6 +29,7 @@ define
         SCORE = {NewCell 0}
 
         PORTS = {NewCell nil}
+        PACGUMS = {NewCell nil}
 
         proc {SetGUI X} GUI := X end
         fun {GetGUI} @GUI end
@@ -39,8 +40,11 @@ define
 
         proc {AppendPORTS X} PORTS := X|@PORTS end
         fun {GetPORTS} @PORTS end
+        proc {AppendPACGUMS X} PACGUMS := X|@PACGUMS end
+        fun {GetPACGUMS} @PACGUMS end
+        proc {SetPACGUMS X} PACGUMS := X end
     in
-        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE appendPORTS:AppendPORTS getPORTS:GetPORTS)
+        gc(setGUI:SetGUI setMAZE:SetMAZE setSCORE:SetSCORE getGUI:GetGUI getMAZE:GetMAZE getSCORE:GetSCORE appendPORTS:AppendPORTS getPORTS:GetPORTS appendPACGUMS:AppendPACGUMS getPACGUMS:GetPACGUMS setPACGUMS:SetPACGUMS)
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
@@ -102,31 +106,38 @@ define
         end
     end
 
-    proc {IncreaseScored State}
-        CurrentPoints = {State.getSCORE}
-        NewPoints = CurrentPoints+1
-    in
-        {State.setSCORE NewPoints}
-        {{State.getGUI} updateScore(NewPoints)}
-    end
-
     proc {MoveTo ID Dir State}
         {{State.getGUI} moveBot(ID Dir)}
         {{State.getGUI} update()}
+    end
+
+    proc {PickPacgum Instance X Y}
+        Pacgums = {Instance.getPACGUMS}
+        NewPacgums
+        CurrentPoints = {Instance.getSCORE}
+        NewPoints = CurrentPoints+1
+    in
+        {List.subtract Pacgums pacgum(X Y) NewPacgums} 
+        {Instance.setPACGUMS NewPacgums}
+        
+        {Instance.setSCORE NewPoints}
+        {{Instance.getGUI} updateScore(NewPoints)}
     end
 
     % Please note: Msg | Upcoming is a pattern match of the Stream argument
     proc {Handler Msg | Upcoming Instance}
         case Msg of shutdown() then
             {System.show 'Message Shutdown'}
-        [] increaseScore then
-            {IncreaseScored Instance}
 
         [] moveTo(ID Dir) then
             {MoveTo ID Dir Instance}
 
         [] pacgumSpawned(X Y) then
-            skip
+            %{System.show pacgum(X Y)}
+            {Instance.appendPACGUMS pacgum(X Y)}
+
+        [] pacgumDispawned(X Y) then
+            {Broadcast {Instance.getPORTS} pacgumDispawned(X Y)}
 
         [] pacpowSpawned(X Y) then
             skip
@@ -134,6 +145,10 @@ define
         [] movedTo(ID Type X Y) then
             {System.show log('bot' ID 'has moved towards' X Y)}
             {Broadcast {Instance.getPORTS} movedTo(ID Type X Y)}
+            if Type == 'pacmoz' andthen {Member pacgum(X Y) {Instance.getPACGUMS}} then
+                {{Instance.getGUI} dispawnPacgum(X Y)}
+                {PickPacgum Instance X Y}
+            end
 
         else 
             {System.show log('Main Unknown Message' Msg)}
@@ -168,14 +183,10 @@ define
 
         {Instance.appendPORTS PacmozPort}
 
-        {System.show {Instance.getPORTS}}
-        
         %%% MSG
         {GUI moveBot(PacmozID 'south')}
         {GUI moveBot(PacmozID 'south')}
 
-        {Send PacmozPort test}
-        {Send PacmozPort movedTo(south)}
         {Send PacmozPort inf}
         
     in

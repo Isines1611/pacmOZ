@@ -3,6 +3,7 @@ functor
 import
     OS
     System
+    Application
 export
     'getPort': SpawnAgent
 define
@@ -18,6 +19,8 @@ define
         MAZE = {NewCell 0}
         PORT = {NewCell 0}
 
+        MOVE = {NewCell true}
+
         X = {NewCell 0}
         Y = {NewCell 0}
 
@@ -32,8 +35,11 @@ define
         fun {GetX} @X end
         proc {SetY N} Y := N end
         fun {GetY} @Y end
+
+        proc {SetMOVE N} MOVE := N end
+        fun {GetMOVE} @MOVE end
     in
-        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT setX:SetX setY:SetY getX:GetX getY:GetY)
+        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT setX:SetX setY:SetY getX:GetX getY:GetY setMOVE:SetMOVE getMOVE:GetMOVE)
     end
 
     % All usefull functions/proc
@@ -44,8 +50,11 @@ define
     end
 
     proc {InfSouth Instance}
-        {Send {Instance.getPORT} moveTo({Instance.getID} 'south')}
-        {Delay 2000}
+        if {GetTile {Instance.getX} {Instance.getY}+1 Instance} == 0 then
+            {Send {Instance.getPORT} moveTo({Instance.getID} 'south')}
+            {Delay 2000}
+        end
+        
         {InfSouth Instance}
     end
 
@@ -53,11 +62,25 @@ define
         if {Instance.getID} == ID then 
             {Instance.setX X}
             {Instance.setY Y}
+            {Instance.setMOVE true}
             
-            {System.show maze(X Y '->' Y*29+X)}
-            {System.show {Nth {Instance.getMAZE} Y * 29 + X}}
+            %{System.show maze(X Y '->' (Y*28+X)+1)}
+            %{System.show {Nth {Instance.getMAZE} (Y * 28 + X)+1}}
         end
     end
+
+    fun {GetTile X Y Instance}
+        if X < 0 then
+            ~1
+        elseif Y < 0 then
+            {Application.exit 0}
+            ~1
+        else
+            {Nth {Instance.getMAZE} (Y * 28 + X)+1}
+        end
+    end
+
+    
 
     % Handler
     proc {Handler Msg | Upcoming Instance}
@@ -67,23 +90,13 @@ define
             {Sum X Y}
 
         [] movedTo(ID Type X Y) then
-            {System.show 'new movedTo'}
-            thread {BotMoved ID Instance X Y} end
+            {BotMoved ID Instance X Y}
 
         [] rand(X) then
             {System.show {GetRandInt X}}
 
         [] inf then 
             thread {InfSouth Instance} end
-
-        [] increaseScore then 
-            {Send {Instance.getPORT} increaseScore}
-
-        [] test then
-            {System.show {Instance.getMAZE}}
-            {System.show {Nth {Instance.getMAZE} (1 * 29 + 1)}}
-            %{Nth {Instance.getMAZE} {Instance.getY} * 29 + {Instace.getX}}
-
         
         else 
             {System.show log('PacmOZ Unknown Message:' Msg)}
