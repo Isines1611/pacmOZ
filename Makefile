@@ -34,3 +34,6 @@ main:
 
 graphics:
 	$(OZC) -c Graphics.oz -o "Graphics.ozf"	
+
+ghost:
+	$(OZC) -c ghOzt000Basic.oz -o "GhOzt000Basic.ozf"

@@ -137,7 +137,8 @@ define
             {Instance.appendPACGUMS pacgum(X Y)}
 
         [] pacgumDispawned(X Y) then
-            {Broadcast {Instance.getPORTS} pacgumDispawned(X Y)}
+            %{Broadcast {Instance.getPORTS} pacgumDispawned(X Y)}
+            skip
 
         [] pacpowSpawned(X Y) then
             skip
@@ -163,6 +164,10 @@ define
     proc {StartGame}
         PacmozID
         PacmozPort
+        GhoZtID
+        GhoZtPort
+        GhoZt2ID
+        GhoZt2Port
         Stream
         Port = {NewPort Stream}
         GUI = {Graphics.spawn Port 30}
@@ -175,19 +180,25 @@ define
         {Instance.setMAZE Maze}
         {Instance.setSCORE 0}
 
-        %{GUI updateScore(100)} % Update le score c'est bete mais ca marche
-
         {GUI spawnBot('pacmoz' 1 1 PacmozID)}
         %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
         PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
 
+        {GUI spawnBot('ghost' 1 1 GhoZtID)}
+        GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
+        {GUI spawnBot('ghost' 26 1 GhoZt2ID)}
+        GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
+
+        % Store Ports
         {Instance.appendPORTS PacmozPort}
+        {Instance.appendPORTS GhoZtPort}
+        {Instance.appendPORTS GhoZt2Port}
 
         %%% MSG
         {GUI moveBot(PacmozID 'south')}
         {GUI moveBot(PacmozID 'south')}
-
-        {Send PacmozPort inf}
+    
+        %{Send PacmozPort inf}
         
     in
         % TODO: log the winning team name and the score then use {Application.exit 0}

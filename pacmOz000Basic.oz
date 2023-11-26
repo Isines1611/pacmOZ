@@ -3,7 +3,6 @@ functor
 import
     OS
     System
-    Application
 export
     'getPort': SpawnAgent
 define
@@ -19,8 +18,6 @@ define
         MAZE = {NewCell 0}
         PORT = {NewCell 0}
 
-        MOVE = {NewCell true}
-
         X = {NewCell 0}
         Y = {NewCell 0}
 
@@ -35,11 +32,8 @@ define
         fun {GetX} @X end
         proc {SetY N} Y := N end
         fun {GetY} @Y end
-
-        proc {SetMOVE N} MOVE := N end
-        fun {GetMOVE} @MOVE end
     in
-        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT setX:SetX setY:SetY getX:GetX getY:GetY setMOVE:SetMOVE getMOVE:GetMOVE)
+        ag(setID:SetID setMAZE:SetMAZE setPORT:SetPORT getID:GetID getMAZE:GetMAZE getPORT:GetPORT setX:SetX setY:SetY getX:GetX getY:GetY)
     end
 
     % All usefull functions/proc
@@ -62,7 +56,6 @@ define
         if {Instance.getID} == ID then 
             {Instance.setX X}
             {Instance.setY Y}
-            {Instance.setMOVE true}
             
             %{System.show maze(X Y '->' (Y*28+X)+1)}
             %{System.show {Nth {Instance.getMAZE} (Y * 28 + X)+1}}
@@ -73,7 +66,6 @@ define
         if X < 0 then
             ~1
         elseif Y < 0 then
-            {Application.exit 0}
             ~1
         else
             {Nth {Instance.getMAZE} (Y * 28 + X)+1}
@@ -90,7 +82,8 @@ define
             {Sum X Y}
 
         [] movedTo(ID Type X Y) then
-            {BotMoved ID Instance X Y}
+            %{BotMoved ID Instance X Y}
+            skip
 
         [] rand(X) then
             {System.show {GetRandInt X}}
