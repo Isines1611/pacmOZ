@@ -7,14 +7,11 @@ export
     'getPort': SpawnAgent
 define
 
-    % Feel free to modify it as much as you want to build your own agents :) !
-
-    % Helper => returns an integer between [0, N]
+    % Helper => returns an integer between [0, N[
     fun {GetRandInt N} {OS.rand} mod N end
     
-    % TODO: Complete this concurrent functional agent (PacmOz/GhOzt)
     fun {Agent State}
-        fun {CanMove X Y Maze} % 0 = true / 1 = false
+        fun {CanMove X Y Maze} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
             if {Nth Maze (Y * 28 + X)+1} == 0 then
                 0
             elseif {Nth Maze (Y * 28 + X)+1} == 2 then
@@ -79,7 +76,6 @@ define
         end
     end
 
-    % Please note: Msg | Upcoming is a pattern match of the Stream argument
     proc {Handler Msg | Upcoming Instance}
         if Msg \= shutdown() then {Handler Upcoming {Instance Msg}} end
     end
@@ -93,8 +89,6 @@ define
             'maze': Maze
             'gcport': GCPort
         )}
-
-        {System.show {Nth Maze (13 * 28 + 2)+1}}
     in
         thread {Handler Stream Instance} end
         Port
