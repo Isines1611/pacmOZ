@@ -72,7 +72,12 @@ define
                 'movedTo': MovedTo
             )
         in
-            {Interface.Dispatch Msg}
+            if {HasFeature Interface Dispatch} then
+                {Interface.Dispatch Msg}
+            else
+                %{System.show log('Unhandle message' Dispatch)}
+                {Agent State}
+            end
         end
     end
 

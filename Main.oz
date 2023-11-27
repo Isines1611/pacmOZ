@@ -50,7 +50,6 @@ define
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
     fun {GameController State}
         fun {MoveTo moveTo(Id Dir)}
-            {System.show 'moving'}
             {State.gui moveBot(Id Dir)}
             {GameController State}
         end
@@ -106,11 +105,6 @@ define
         end
     end
 
-    proc {MoveTo ID Dir State}
-        {{State.getGUI} moveBot(ID Dir)}
-        {{State.getGUI} update()}
-    end
-
     proc {PickPacgum Instance X Y}
         Pacgums = {Instance.getPACGUMS}
         NewPacgums
@@ -122,6 +116,11 @@ define
         
         {Instance.setSCORE NewPoints}
         {{Instance.getGUI} updateScore(NewPoints)}
+
+        if NewPoints == 320 then
+            {System.show win('THE PACMOZ WIN WITH SCORE:' NewPoints*100)}
+            {Application.exit 0}
+        end
     end
 
     % Please note: Msg | Upcoming is a pattern match of the Stream argument
@@ -130,15 +129,17 @@ define
             {System.show 'Message Shutdown'}
 
         [] moveTo(ID Dir) then
-            {MoveTo ID Dir Instance}
+            {{Instance.getGUI} moveBot(ID Dir)}
+            {{Instance.getGUI} update()}
 
         [] pacgumSpawned(X Y) then
             %{System.show pacgum(X Y)}
             {Instance.appendPACGUMS pacgum(X Y)}
+            {Broadcast {Instance.getPORTS} pacgumSpawned(X Y)}
 
         [] pacgumDispawned(X Y) then
-            %{Broadcast {Instance.getPORTS} pacgumDispawned(X Y)}
-            skip
+            {Broadcast {Instance.getPORTS} pacgumDispawned(X Y)}
+            %skip
 
         [] pacpowSpawned(X Y) then
             skip
@@ -164,10 +165,10 @@ define
     proc {StartGame}
         PacmozID
         PacmozPort
-        GhoZtID
-        GhoZtPort
-        GhoZt2ID
-        GhoZt2Port
+        %GhoZtID
+        %GhoZtPort
+        %GhoZt2ID
+        %GhoZt2Port
         Stream
         Port = {NewPort Stream}
         GUI = {Graphics.spawn Port 30}
@@ -181,30 +182,19 @@ define
         {Instance.setSCORE 0}
 
         {GUI spawnBot('pacmoz' 1 1 PacmozID)}
-        %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init({GUI genId($)} Maze Port)}
         PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
 
-        {GUI spawnBot('ghost' 1 1 GhoZtID)}
-        GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
-        {GUI spawnBot('ghost' 26 1 GhoZt2ID)}
-        GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
+        %{GUI spawnBot('ghost' 1 1 GhoZtID)}
+        %GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
+        %{GUI spawnBot('ghost' 26 1 GhoZt2ID)}
+        %GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
 
         % Store Ports
         {Instance.appendPORTS PacmozPort}
-        {Instance.appendPORTS GhoZtPort}
-        {Instance.appendPORTS GhoZt2Port}
-
-        %%% MSG
-        {GUI moveBot(PacmozID 'south')}
-        {GUI moveBot(PacmozID 'south')}
-    
-        %{Send PacmozPort inf}
+        %{Instance.appendPORTS GhoZtPort}
+        %{Instance.appendPORTS GhoZt2Port}
         
     in
-        % TODO: log the winning team name and the score then use {Application.exit 0}
-       % {GUI dispawnPacgum(1 1)}
-       % {GUI moveBot(PacmozID 'south')}
-
         {GUI update()}
         {Handler Stream Instance}
         {Application.exit 0}
