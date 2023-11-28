@@ -12,8 +12,6 @@ define
     proc {Broadcast Tracker Msg}
         {Record.forAll Tracker proc {$ Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
     end
-    % TODO: define here any auxiliary functions or procedures you may need
-    %...
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
     fun {GameController State}
@@ -31,8 +29,6 @@ define
 
             {GameController {AdjoinAt State 'items' NewItems}}
         end
-        % TODO: add other functions to handle the messages here
-        %...
 
         fun {PacgumDispawned pacgumDispawned(X Y)}
             {System.show 'rm'}
@@ -41,28 +37,32 @@ define
         
         % function to handle the movedTo message    % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
         fun {MovedTo movedTo(Id Type X Y)}
+            NewItems
             Index = Y * 28 + X
-            NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
-            {System.show NewItems}
-        in
-            {System.show log('bot' Id 'has moved towards' X Y)}
-            {Broadcast State.tracker movedTo(Id Type X Y)}
-            if Type == 'pacmoz' andthen {HasFeature State.items Index} then
+        in 
+            if Type == 'pacmoz' andthen {HasFeature State.items Index} andthen State.items.Index.alive then
+                NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
                 
                 {Broadcast State.tracker pacgumDispawned(X Y)}
-                
-                
-                %{PickPacgum Instance X Y}
-            end 
+                {State.gui updateScore(320 - State.items.ngum)}
+                {State.gui dispawnPacgum(X Y)}
 
-            % Create a NewState record with Adjoin/AdjoinAt function and return it
-            {GameController State}
+                if State.items.ngum == 1 then
+                    {System.show win('THE PACMOZ WIN WITH SCORE:' NewPoints*100)}
+                    {Application.exit 0}
+                end
+
+                {Broadcast State.tracker movedTo(Id Type X Y)}
+                {GameController {AdjoinAt State 'items' NewItems}}
+            else
+                {Broadcast State.tracker movedTo(Id Type X Y)}
+                {GameController State}
+            end
+
+            
         end
     in
-        % TODO: complete the interface and discard and report unknown messages
-        % every function is a field in the interface() record
         fun {$ Msg}
-            {System.show message(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'moveTo': MoveTo
