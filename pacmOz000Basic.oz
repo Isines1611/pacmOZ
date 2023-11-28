@@ -25,7 +25,7 @@ define
                         NewDir = {CheckPacgums X Y}
 
                         NewState = {Adjoin State state(
-                            'last': NewDir
+                            'last': NewDir 
                         )}
                         
                         {System.show moving(NewDir)}
