@@ -11,62 +11,119 @@ define
     fun {GetRandInt N} {OS.rand} mod N end
     
     fun {Agent State}
-        fun {CanMove X Y Maze} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
-            if {Nth Maze (Y * 28 + X)+1} == 0 then
+        fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
+            if {Nth State.maze (Y * 28 + X)+1} == 0 then
                 0
-            elseif {Nth Maze (Y * 28 + X)+1} == 2 then
+            elseif {Nth State.maze (Y * 28 + X)+1} == 2 then
                 0
             else
                 1
             end
         end
 
-        fun {NextMove X Y Maze}
-            RandDir = {GetRandInt 4}
-        in
-            if RandDir == 0 then % south
-                if {CanMove X Y+1 Maze} == 0 then % Fine
-                    'south'
-                else % MUR
-                    {NextMove X Y Maze}
+        fun {IsCross X Y} % 0 = true (il y a cross) / 1 = false
+            if State.last == 'south' then
+                if {CanMove X+1 Y} == 0 then
+                    0
+                elseif {CanMove X-1 Y} == 0 then
+                    0
+                else 
+                    1
                 end
-            elseif RandDir == 1 then % north
-                if {CanMove X Y-1 Maze} == 0 then % Fine
-                    'north'
-                else
-                    {NextMove X Y Maze}
+            elseif State.last == 'north' then
+                if {CanMove X+1 Y} == 0 then
+                    0
+                elseif {CanMove X-1 Y} == 0 then
+                    0
+                else 
+                    1
                 end
-            elseif RandDir == 2 then % east
-                if {CanMove X+1 Y Maze} == 0 then % Fine
-                    'east'
+            else % East / West
+                if {CanMove X Y+1} == 0 then
+                    0
+                elseif {CanMove X Y-1} == 0 then
+                    0
                 else
-                    {NextMove X Y Maze}
-                end
-            else % west
-                if {CanMove X-1 Y Maze} == 0 then % Fine
-                    'west'
-                else
-                    {NextMove X Y Maze}
+                    1
                 end
             end
         end
 
-        fun {MovedTo Msg}
-            Dir
+        fun {NextMove X Y}
+            if State.last == 'south' then % En venant du haut vers le bas
+                if {CanMove X Y+1} == 0 then
+                    'south'
+                else
+                    {GetRandDir X Y X Y-1}
+                end
+            elseif State.last == 'north' then % En venant du haut vers le bas
+                if {CanMove X Y-1} == 0 then
+                    'north'
+                else
+                    {GetRandDir X Y X Y+1}
+                end
+            elseif State.last == 'east' then % En venant de gauche a droit
+                if {CanMove X+1 Y} == 0 then
+                    'east'
+                else
+                    {GetRandDir X Y X-1 Y}
+                end
+            elseif State.last == 'west' then
+                if {CanMove X-1 Y} == 0 then
+                    'west'
+                else
+                    {GetRandDir X Y X+1 Y}
+                end
+            end
+        end
+
+        fun {GetRandDir X Y LastX LastY} % Aide de NextMove
+            L = {NewCell nil}
+
+            Xs = [X X X+1 X-1]
+            Ys = [Y+1 Y-1 Y Y]
+            Dir = ['south' 'north' 'east' 'west']
         in
-            case Msg of movedTo(Id Type X Y) then
-                if Id == State.id then
-                    Dir = {NextMove X Y State.maze}
-                    {Send State.gcport moveTo(State.id Dir)}
+            for D in 1..4 do
+                if {Nth Xs D} == LastX andthen {Nth Ys D} == LastY then skip
+                else
+                    if {CanMove {Nth Xs D} {Nth Ys D}} == 0 then
+                        L := {Nth Dir D}|@L
+                    end
                 end
             end
 
-            {Agent State}
+            {Nth @L {GetRandInt {Length @L}} +1}
+        end
+
+        fun {MovedTo movedTo(Id Type X Y)}
+            NewDir
+            NewState
+        in
+            if Id == State.id then
+                if {IsCross X Y} == 1 then
+                    NewState = State
+                    {Send State.gcport moveTo(State.id State.last)}
+                    {System.show gMoving(State.last)}
+                else
+                    NewDir = {NextMove X Y}
+
+                    NewState = {Adjoin State state(
+                        'last': NewDir 
+                    )}
+                    
+                    {System.show gMoving(NewDir)}
+                    {Send State.gcport moveTo(State.id NewDir)}
+                end
+            end
+
+            {Agent NewState}
         end
 
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
+            {System.show ghost(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'movedTo': MovedTo
@@ -93,6 +150,7 @@ define
             'id': Id
             'maze': Maze
             'gcport': GCPort
+            'last': 'south'
         )}
     in
         thread {Handler Stream Instance} end

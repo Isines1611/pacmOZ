@@ -12,41 +12,36 @@ define
     
     % TODO: Complete this concurrent functional agent (PacmOz/GhOzt)
     fun {Agent State}
-        fun {MovedTo Msg}
+        fun {MovedTo movedTo(Id Type X Y)}
             NewDir
             NewState
         in
-            case Msg of movedTo(Id Type X Y) then
-                if Id == State.id then
-                    if {IsCross X Y} == 1 then % Si pas de croissement, continuer
-                        NewState = State
-                        {Send State.gcport moveTo(State.id State.last)}
-                    else
-                        NewDir = {CheckPacgums X Y}
+            if Id == State.id then
+                if {IsCross X Y} == 1 then % Si pas de croissement, continuer
+                    NewState = State
+                    {Send State.gcport moveTo(State.id State.last)}
+                else
+                    NewDir = {CheckPacgums X Y}
 
-                        NewState = {Adjoin State state(
-                            'last': NewDir 
-                        )}
-                        
-                        {System.show moving(NewDir)}
-                        {Send State.gcport moveTo(State.id NewDir)}
-                    end
-                end
+                    NewState = {Adjoin State state(
+                        'last': NewDir 
+                    )}
+
+                    {System.show moving(NewDir)}
+                    {Send State.gcport moveTo(State.id NewDir)}
+                end 
             end
 
             {Agent NewState}
         end
 
-        fun {PacgumSpawned Msg}
+        fun {PacgumSpawned pacgumSpawned(X Y)}
             NewState
         in
-            case Msg of pacgumSpawned(X Y) then
-                NewState = {Adjoin State state(
-                    'pacgums': pacgum(X Y) | State.pacgums
-                    'len': State.len + 1
-                )}
-            else NewState = State
-            end
+            NewState = {Adjoin State state(
+                'pacgums': pacgum(X Y) | State.pacgums
+                'len': State.len + 1
+            )}
 
             {Agent NewState}
         end
@@ -173,6 +168,7 @@ define
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
+            {System.show pacmoz(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'movedTo': MovedTo

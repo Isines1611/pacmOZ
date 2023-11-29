@@ -31,7 +31,7 @@ define
         end
 
         fun {PacgumDispawned pacgumDispawned(X Y)}
-            {System.show 'rm'}
+            {Broadcast State.tracker pacgumDispawned(X Y)}
             {GameController State}
         end
         
@@ -43,12 +43,11 @@ define
             if Type == 'pacmoz' andthen {HasFeature State.items Index} andthen State.items.Index.alive then
                 NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
                 
-                {Broadcast State.tracker pacgumDispawned(X Y)}
                 {State.gui updateScore(320 - State.items.ngum)}
-                {State.gui dispawnPacgum(X Y)}
+                %{State.gui dispawnPacgum(X Y)}
 
                 if State.items.ngum == 1 then
-                    {System.show win('THE PACMOZ WIN WITH SCORE:' NewPoints*100)}
+                    {System.show win('THE PACMOZ WIN WITH SCORE: 32000')}
                     {Application.exit 0}
                 end
 
@@ -58,11 +57,10 @@ define
                 {Broadcast State.tracker movedTo(Id Type X Y)}
                 {GameController State}
             end
-
-            
         end
     in
         fun {$ Msg}
+            {System.show msg(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'moveTo': MoveTo
@@ -84,27 +82,61 @@ define
         {Handler Upcoming {Instance Msg}}
     end
 
+    fun {InitAgents Agents Bool GUI Port Maze}
+        fun {BuildAgent Bot}
+            ID = {GUI spawnBot(Bot.1 Bot.3 Bot.4 $)}
+            PORT = {AgentManager.spawnBot Bot.2 init(ID Port Maze)}
+        in
+            playerState(alive:true id:ID port:PORT)
+        end
+
+        fun {AddAgents L Acc}
+            case L of H|T then
+                {AddAgents T Acc|{BuildAgent H}}
+            [] nil then Acc
+            end
+        end
+
+        First
+        End
+    in
+        case Agents of H|T then
+            First = {BuildAgent H}
+            End = {AddAgents T First}
+        [] nil then End
+        end
+    end
+
     % TODO: Spawn the agents
     proc {StartGame}
         Stream
         Port = {NewPort Stream}
         GUI = {Graphics.spawn Port 30}
-        PacmozID
+        /* PacmozID
         PacmozPort
+        GhoZtID
+        GhoZtPort  */
+        Track
 
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        {GUI spawnBot('pacmoz' 1 1 PacmozID)}
-        PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
+        %{GUI spawnBot('pacmoz' 1 1 PacmozID)}
+        %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
+
+        %{GUI spawnBot('ghost' 26 27 GhoZtID)}
+        %GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
+
+        Track = {InitAgents Input.bots 0 GUI Port Maze}
 
         Instance = {GameController state(
             'gui': GUI
             'maze': Maze
             'score': 0
             'items': items('ngum': 0)
-            'tracker': track(playerState(alive:true id:PacmozID port:PacmozPort))
+            'tracker': Track
         )}
+
     in
         {GUI update()}
         {Handler Stream Instance}
