@@ -11,13 +11,19 @@ define
     fun {GetRandInt N} {OS.rand} mod N end
     
     fun {Agent State}
+        fun {ChooseRandDir} 
+            Dir = ['south' 'north' 'east' 'west']
+            R
+        in
+            R = {GetRandInt 2}+1 
+            {Nth Dir R}
+        end
+
         fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
-            if {Nth State.maze (Y * 28 + X)+1} == 0 then
-                0
-            elseif {Nth State.maze (Y * 28 + X)+1} == 2 then
-                0
-            else
-                1
+            Tile = {Nth State.maze (Y * 28 + X)+1}
+        in
+            if Tile == 1 then 1 
+            else 0
             end
         end
 
@@ -74,59 +80,88 @@ define
                 else
                     {GetRandDir X Y X+1 Y}
                 end
+            else {System.show went(State.last)}
             end
         end
 
         fun {GetRandDir X Y LastX LastY} % Aide de NextMove
-            L = {NewCell nil}
-
+            L 
+            
             Xs = [X X X+1 X-1]
             Ys = [Y+1 Y-1 Y Y]
             Dir = ['south' 'north' 'east' 'west']
-        in
-            for D in 1..4 do
-                if {Nth Xs D} == LastX andthen {Nth Ys D} == LastY then skip
-                else
-                    if {CanMove {Nth Xs D} {Nth Ys D}} == 0 then
-                        L := {Nth Dir D}|@L
-                    end
-                end
-            end
 
-            {Nth @L {GetRandInt {Length @L}} +1}
+            fun {CheckDirection D}
+                {Nth Xs D} \= LastX andthen {Nth Ys D} \= LastY andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0
+            end
+        in
+            L = {List.filter [1 2 3 4] CheckDirection}
+
+            {Nth Dir {Nth L {GetRandInt {Length L}} +1}}
         end
 
         fun {MovedTo movedTo(Id Type X Y)}
             NewDir
             NewState
+            Cross
         in
-            if Id == State.id then
-                if {IsCross X Y} == 1 then
+            if State.id == Id then
+
+                thread Cross = {IsCross X Y} end
+                {Wait Cross}
+
+                if Cross == 1 then
+                    {Send State.gcport moveTo(State.id State.last)}
+                else
+                    thread NewDir = {NextMove X Y} end
+                    {Wait NewDir} 
+                    {Send State.gcport moveTo(State.id NewDir)}
+                end
+
+                
+
+            /*if Id == State.id then
+                thread Cross = {IsCross X Y} end
+                {Wait Cross}
+
+                if Cross == 1 then
                     NewState = State
                     {Send State.gcport moveTo(State.id State.last)}
-                    {System.show gMoving(State.last)}
                 else
-                    NewDir = {NextMove X Y}
+                    thread NewDir = {ChooseRandDir} end
+                    {Wait NewDir}
 
                     NewState = {Adjoin State state(
                         'last': NewDir 
                     )}
                     
-                    {System.show gMoving(NewDir)}
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
+            end */
             end
+            {Agent State}
+        end
 
-            {Agent NewState}
+        fun {MoveTo moveTo(Id Dir)}
+            NewState
+        in
+            if State.id == Id andthen State.last \= Dir then
+                NewState = {Adjoin State state(
+                    'last': Dir 
+                )}
+                {Agent NewState}
+            else
+                {Agent State}
+            end
         end
 
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
-            {System.show ghost(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'movedTo': MovedTo
+                'moveTo': MoveTo
             )
         in
             if {HasFeature Interface Dispatch} then
@@ -139,7 +174,8 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
-        if Msg \= shutdown() then {Handler Upcoming {Instance Msg}} end
+        {System.show gHandler(Msg|Upcoming)}
+        {Handler Upcoming {Instance Msg}}
     end
 
     fun {SpawnAgent init(Id GCPort Maze)}

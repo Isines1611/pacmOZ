@@ -10,14 +10,14 @@ define
      % Check the Adjoin and AdjoinAt function, documentation: (http://mozart2.org/mozart-v1/doc-1.4.0/base/record.html#section.records.records)
 
     proc {Broadcast Tracker Msg}
-        {Record.forAll Tracker proc {$ Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
+        {Record.forAll Tracker proc {$ Tracked} {System.show Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
     fun {GameController State}
         fun {MoveTo moveTo(Id Dir)}
             {State.gui moveBot(Id Dir)}
-            {State.gui update()}
+            {Broadcast State.tracker moveTo(Id Dir)}
             {GameController State}
         end
         % function to handle the PacGumSpawned message
@@ -26,7 +26,6 @@ define
             NewItems = {Adjoin State.items items(Index: gum('alive': true) 'ngum': State.items.ngum + 1)}
         in
             {Broadcast State.tracker pacgumSpawned(X Y)}
-
             {GameController {AdjoinAt State 'items' NewItems}}
         end
 
@@ -40,7 +39,11 @@ define
             NewItems
             Index = Y * 28 + X
         in 
-            if Type == 'pacmoz' andthen {HasFeature State.items Index} andthen State.items.Index.alive then
+            if Type == 'ghost' then
+                {Broadcast State.tracker movedTo(Id Type X Y)}
+                {GameController State}
+    
+            /*elseif Type == 'pacmoz' andthen {HasFeature State.items Index} andthen State.items.Index.alive then
                 NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
                 
                 {State.gui updateScore(320 - State.items.ngum)}
@@ -52,15 +55,12 @@ define
                 end
 
                 {Broadcast State.tracker movedTo(Id Type X Y)}
-                {GameController {AdjoinAt State 'items' NewItems}}
-            else
-                {Broadcast State.tracker movedTo(Id Type X Y)}
-                {GameController State}
+                {GameController {AdjoinAt State 'items' NewItems}} */
+ 
             end
         end
     in
         fun {$ Msg}
-            {System.show msg(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'moveTo': MoveTo
@@ -79,6 +79,7 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
+        {System.show handler(Msg|Upcoming)}
         {Handler Upcoming {Instance Msg}}
     end
 
@@ -87,7 +88,7 @@ define
             ID = {GUI spawnBot(Bot.1 Bot.3 Bot.4 $)}
             PORT = {AgentManager.spawnBot Bot.2 init(ID Port Maze)}
         in
-            playerState(alive:true id:ID port:PORT)
+            p(alive:true id:ID port:PORT)
         end
 
         fun {AddAgents L Acc}
@@ -113,9 +114,15 @@ define
         Port = {NewPort Stream}
         GUI = {Graphics.spawn Port 30}
         /* PacmozID
-        PacmozPort
+        PacmozPort*/
         GhoZtID
-        GhoZtPort  */
+        GhoZtPort 
+        GhoZt2ID
+        GhoZt2Port 
+        GhoZt3ID
+        GhoZt3Port 
+        GhoZt4ID
+        GhoZt4Port 
         Track
 
         Maze = {Input.genMaze}
@@ -124,23 +131,31 @@ define
         %{GUI spawnBot('pacmoz' 1 1 PacmozID)}
         %PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
 
-        %{GUI spawnBot('ghost' 26 27 GhoZtID)}
-        %GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
+        GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
+        thread {GUI spawnBot('ghost' 26 27 GhoZtID)} end
+        
+        GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
+        thread {GUI spawnBot('ghost' 1 27 GhoZt2ID)} end
 
-        Track = {InitAgents Input.bots 0 GUI Port Maze}
+        GhoZt3Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt3ID Port Maze)}
+        thread {GUI spawnBot('ghost' 26 1 GhoZt3ID)} end
+        
+        GhoZt4Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt4ID Port Maze)}
+        thread {GUI spawnBot('ghost' 1 1 GhoZt4ID)} end
+        
+        %Track = {InitAgents Input.bots 0 GUI Port Maze}
 
         Instance = {GameController state(
             'gui': GUI
             'maze': Maze
             'score': 0
             'items': items('ngum': 0)
-            'tracker': Track
+            %'tracker': p(p(alive:true id:GhoZtID port:GhoZtPort)) %#p(alive:true id:GhoZt2ID port:GhoZt2Port)
+            'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)#p(alive:true id:GhoZt4ID port:GhoZt4Port)
         )}
 
     in
-        {GUI update()}
-        {Handler Stream Instance}
-        {Application.exit 0}
+        thread {Handler Stream Instance} end
     end
 
     {StartGame}
