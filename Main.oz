@@ -61,8 +61,12 @@ define
                 {Broadcast State.tracker movedTo(Id Type X Y)}
 
                 if {HasFeature State.items Index} andthen State.items.Index.alive then
-                    {System.show 'pacgum'}
                     {State.gui dispawnPacgum(X Y)}
+                end
+
+                if {HasFeature State.pacpow Index} andthen State.pacpow.Index.alive then
+                    {System.show 'pacpow'}
+                    {State.gui dispawnPacpow(X Y)}
                 end
 
                 {GameController State}
@@ -70,6 +74,29 @@ define
             else
                 {GameController State}
             end
+        end
+
+        fun {PacpowSpawned pacpowSpawned(X Y)}
+            Index = Y * 28 + X
+            NewPows = {Adjoin State.pacpow pacpow(Index: pow('alive': true) 'npow': State.pacpow.npow + 1)}
+        in
+            {Broadcast State.tracker spawnPacpow(X Y)}
+            {System.show State.pacpow}
+            {GameController {AdjoinAt State 'pacpow' NewPows}}
+        end
+
+        fun {PacpowDispawned pacpowDispawned(X Y)}
+            Index = Y * 28 + X
+            NewPows = {Adjoin State.pacpow pacpow(Index: pow('alive': false) 'npow': State.pacpow.npow - 1)}
+        in
+            {Broadcast State.tracker pacpowDispawned(X Y)}
+            {GameController {AdjoinAt State 'pacpow' NewPows}}
+        end
+
+        fun {PacpowDown pacpowDown()}
+            {Broadcast State.tracker pacpowDown()}
+            {State.gui setAllScared(false)}
+            {GameController State}
         end
     in
         fun {$ Msg}
@@ -79,6 +106,9 @@ define
                 'movedTo': MovedTo
                 'pacgumSpawned': PacgumSpawned
                 'pacgumDispawned': PacgumDispawned
+                'pacpowSpawned': PacpowSpawned
+                'pacpowDispawned': PacpowDispawned
+                'pacpowDown': PacpowDown
             )
         in
             if {HasFeature Interface Dispatch} then
@@ -162,6 +192,7 @@ define
             'maze': Maze
             'score': 0
             'items': items('ngum': 0)
+            'pacpow': pacpow('npow': 0)
             %'tracker': p(p(alive:true id:PacmozID port:PacmozPort))
             %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)
             'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)

@@ -20,29 +20,13 @@ define
         end
 
         fun {IsCross X Y} % 0 = true (il y a cross) / 1 = false
-            if State.last == 'south' then
-                if {CanMove X+1 Y} == 0 then
-                    0
-                elseif {CanMove X-1 Y} == 0 then
-                    0
-                else 
-                    1
-                end
-            elseif State.last == 'north' then
-                if {CanMove X+1 Y} == 0 then
-                    0
-                elseif {CanMove X-1 Y} == 0 then
-                    0
-                else 
-                    1
+            if State.last == 'south' orelse State.last == 'north' then
+                if {CanMove X+1 Y} == 0 orelse {CanMove X-1 Y} == 0  then 0
+                else  1
                 end
             else % East / West
-                if {CanMove X Y+1} == 0 then
-                    0
-                elseif {CanMove X Y-1} == 0 then
-                    0
-                else
-                    1
+                if {CanMove X Y+1} == 0 orelse {CanMove X Y-1} == 0 then 0
+                else 1
                 end
             end
         end
