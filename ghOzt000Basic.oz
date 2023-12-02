@@ -11,14 +11,6 @@ define
     fun {GetRandInt N} {OS.rand} mod N end
     
     fun {Agent State}
-        fun {ChooseRandDir} 
-            Dir = ['south' 'north' 'east' 'west']
-            R
-        in
-            R = {GetRandInt 2}+1 
-            {Nth Dir R}
-        end
-
         fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
             Tile = {Nth State.maze (Y * 28 + X)+1}
         in
@@ -80,7 +72,6 @@ define
                 else
                     {GetRandDir X Y X+1 Y}
                 end
-            else {System.show went(State.last)}
             end
         end
 
@@ -117,27 +108,6 @@ define
                     {Wait NewDir} 
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
-
-                
-
-            /*if Id == State.id then
-                thread Cross = {IsCross X Y} end
-                {Wait Cross}
-
-                if Cross == 1 then
-                    NewState = State
-                    {Send State.gcport moveTo(State.id State.last)}
-                else
-                    thread NewDir = {ChooseRandDir} end
-                    {Wait NewDir}
-
-                    NewState = {Adjoin State state(
-                        'last': NewDir 
-                    )}
-                    
-                    {Send State.gcport moveTo(State.id NewDir)}
-                end
-            end */
             end
             {Agent State}
         end
@@ -174,7 +144,7 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
-        {System.show gHandler(Msg|Upcoming)}
+        %{System.show gHandler(Msg|Upcoming)}
         {Handler Upcoming {Instance Msg}}
     end
 

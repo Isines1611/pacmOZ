@@ -12,56 +12,15 @@ define
     
     % TODO: Complete this concurrent functional agent (PacmOz/GhOzt)
     fun {Agent State}
-        fun {MovedTo movedTo(Id Type X Y)}
-            NewDir
-            NewState
+        % BRAIN FUNCTION 
+        fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
+            Tile = {Nth State.maze (Y * 28 + X)+1}  
         in
-            if Id == State.id then
-                if {IsCross X Y} == 1 then % Si pas de croissement, continuer
-                    NewState = State
-                    {Send State.gcport moveTo(State.id State.last)}
-                else
-                    NewDir = {CheckPacgums X Y}
-
-                    NewState = {Adjoin State state(
-                        'last': NewDir 
-                    )}
-
-                    {System.show moving(NewDir)}
-                    {Send State.gcport moveTo(State.id NewDir)}
-                end 
+            if Tile == 1 then 1
+            else 0
             end
-
-            {Agent NewState}
         end
-
-        fun {PacgumSpawned pacgumSpawned(X Y)}
-            NewState
-        in
-            NewState = {Adjoin State state(
-                'pacgums': pacgum(X Y) | State.pacgums
-                'len': State.len + 1
-            )}
-
-            {Agent NewState}
-        end
-
-        fun {PacgumDispawned Msg}
-            Pacgums = State.pacgums
-            NewPacgums
-            NewState
-        in
-            case Msg of pacgumDispawned(X Y) then
-                {List.subtract Pacgums pacgum(X Y) NewPacgums}
-                NewState = {Adjoin State state(
-                    'pacgums': NewPacgums
-                    'len': State.len - 1
-                )}
-            end
-
-            {Agent NewState}
-        end
-
+        
         fun {IsCross X Y} % 0 = true (il y a cross) / 1 = false
             if State.last == 'south' then
                 if {CanMove X+1 Y} == 0 then
@@ -90,14 +49,23 @@ define
             end
         end
 
-        fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
-            if {Nth State.maze (Y * 28 + X)+1} == 0 then
-                0
-            elseif {Nth State.maze (Y * 28 + X)+1} == 2 then
-                0
-            else
-                1
-            end
+        fun {GetRandDir X Y LastX LastY} % Aide de CheckPacgums
+            L
+
+            Xs = [X X X+1 X-1]
+            Ys = [Y+1 Y-1 Y Y]
+            Dir = ['south' 'north' 'east' 'west']
+
+            fun {CheckDirection D} {Nth Xs D} \= LastX andthen {Nth Ys D} \= LastY andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0 end
+        in
+            L = {List.filter [1 2 3 4] CheckDirection}
+            {Nth Dir {Nth L {GetRandInt {Length L}} +1}}
+        end
+
+        fun {IsPacgums X Y} 
+            Index = Y*28 + X
+        in
+            {HasFeature State.items Index} andthen State.items.Index.alive
         end
 
         fun {CheckPacgums X Y} % Return une dir valid
@@ -144,39 +112,75 @@ define
             end
         end
 
-        fun {IsPacgums X Y} {Member pacgum(X Y) State.pacgums} end
 
-        fun {GetRandDir X Y LastX LastY} % Aide de CheckPacgums
-            L = {NewCell nil}
-
-            Xs = [X X X+1 X-1]
-            Ys = [Y+1 Y-1 Y Y]
-            Dir = ['south' 'north' 'east' 'west']
+        %%% MSG MANAGMENT
+        fun {PacgumSpawned pacgumSpawned(X Y)}
+            Index = Y*28 + X
+            NewItems = {Adjoin State.items items(Index: gum('alive': true) 'ngum': State.items.ngum + 1)}
         in
-            for D in 1..4 do
-                if {Nth Xs D} == LastX andthen {Nth Ys D} == LastY then skip
-                else
-                    if {CanMove {Nth Xs D} {Nth Ys D}} == 0 then
-                        L := {Nth Dir D}|@L
-                    end
-                end
-            end
+            {Agent {AdjoinAt State 'items' NewItems}}
+        end
 
-            {Nth @L {GetRandInt {Length @L}} +1}
+        fun {PacgumDispawned pacgumDispawned(X Y)}
+            Index = Y*28 + X
+            NewItems = {Adjoin State.items items(Index: gum('alive':false) 'ngum': State.items.ngum-1)}
+        in  
+            {Agent {AdjoinAt State 'items' NewItems}}
+        end
+        
+        
+        fun {MovedTo movedTo(Id Type X Y)}
+            NewDir  
+            Cross
+        in
+            if State.id == Id then
+
+                thread Cross = {IsCross X Y} end
+                {Wait Cross}
+
+                if Cross == 1 then
+                    {Send State.gcport moveTo(State.id State.last)}
+                else
+                    thread NewDir = {CheckPacgums X Y} end
+                    {Wait NewDir}
+                    {Send State.gcport moveTo(State.id NewDir)}
+                end
+
+            end
+            {Agent State}
+        end
+
+        fun {MoveTo moveTo(Id Dir)}
+            NewState
+        in
+            if State.id == Id andthen State.last \= Dir then
+                NewState = {Adjoin State state(
+                    'last': Dir 
+                )}
+
+                {Agent NewState}
+            else
+                {Agent State}
+            end
         end
 
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
-            {System.show pacmoz(Msg)}
             Dispatch = {Label Msg}
             Interface = interface(
                 'movedTo': MovedTo
+                'moveTo': MoveTo
                 'pacgumSpawned': PacgumSpawned
                 'pacgumDispawned': PacgumDispawned
             )
         in
-            {Interface.Dispatch Msg}
+            if {HasFeature Interface Dispatch} then
+                {Interface.Dispatch Msg}
+            else
+                %{System.show log('Unhandle message' Dispatch)}
+                {Agent State}
+            end
         end
     end
 
@@ -193,9 +197,8 @@ define
             'id': Id
             'maze': Maze
             'gcport': GCPort
-            'pacgums': nil
-            'len': 0
             'last': 'south'
+            'items': items('ngum': 0)
         )}
     in
         thread {Handler Stream Instance} end

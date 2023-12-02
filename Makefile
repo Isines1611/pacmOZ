@@ -21,6 +21,7 @@ all:
 	$(OZC) -c Main.oz
 
 	$(OZC) -c pacmOz000Basic.oz -o "PacmOz000Basic.ozf"
+	$(OZC) -c ghOzt000Basic.oz -o "GhOzt000Basic.ozf"
 run:
 	$(OZENGINE) Main.ozf
 clean:
