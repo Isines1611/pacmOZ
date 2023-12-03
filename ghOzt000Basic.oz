@@ -11,6 +11,7 @@ define
     fun {GetRandInt N} {OS.rand} mod N end
     
     fun {Agent State}
+        % BRAIN FUNCTIONS / move choice
         fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
             Tile = {Nth State.maze (Y * 28 + X)+1}
         in
@@ -31,53 +32,32 @@ define
             end
         end
 
-        fun {NextMove X Y}
-            if State.last == 'south' then % En venant du haut vers le bas
-                if {CanMove X Y+1} == 0 then
-                    'south'
-                else
-                    {GetRandDir X Y X Y-1}
-                end
-            elseif State.last == 'north' then % En venant du haut vers le bas
-                if {CanMove X Y-1} == 0 then
-                    'north'
-                else
-                    {GetRandDir X Y X Y+1}
-                end
-            elseif State.last == 'east' then % En venant de gauche a droit
-                if {CanMove X+1 Y} == 0 then
-                    'east'
-                else
-                    {GetRandDir X Y X-1 Y}
-                end
-            elseif State.last == 'west' then
-                if {CanMove X-1 Y} == 0 then
-                    'west'
-                else
-                    {GetRandDir X Y X+1 Y}
-                end
+        fun {GetOpposite Dir}
+            if Dir == 'south' then 'north'
+            elseif Dir == 'north' then 'south'
+            elseif Dir == 'east' then 'west'
+            else 'east'
             end
         end
 
-        fun {GetRandDir X Y LastX LastY} % Aide de NextMove
-            L 
-            
+        fun {GetNextDir X Y}
+            DirValid
+
             Xs = [X X X+1 X-1]
             Ys = [Y+1 Y-1 Y Y]
             Dir = ['south' 'north' 'east' 'west']
 
-            fun {CheckDirection D}
-                {Nth Xs D} \= LastX andthen {Nth Ys D} \= LastY andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0
-            end
-        in
-            L = {List.filter [1 2 3 4] CheckDirection}
+            Opp = {GetOpposite State.last}
 
-            {Nth Dir {Nth L {GetRandInt {Length L}} +1}}
+            fun {CheckMove D} Opp \= {Nth Dir D} andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0 end 
+        in
+            DirValid = {List.filter [1 2 3 4] CheckMove}
+            {Nth Dir {Nth DirValid {GetRandInt {Length DirValid}} +1}}
         end
 
+        %%% MSG MANAGMENT
         fun {MovedTo movedTo(Id Type X Y)}
             NewDir
-            NewState
             Cross
         in
             if State.id == Id then
@@ -88,7 +68,7 @@ define
                 if Cross == 1 then
                     {Send State.gcport moveTo(State.id State.last)}
                 else
-                    thread NewDir = {NextMove X Y} end
+                    thread NewDir = {GetNextDir X Y} end
                     {Wait NewDir} 
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
@@ -112,7 +92,7 @@ define
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
-            Dispatch = {Label Msg}
+            Dispatch = {Label Msg} % Osef de pacgumSpawned, pacgumDispawned, pacpowSpawned, pacpowDispawned, pacpowDown
             Interface = interface(
                 'movedTo': MovedTo
                 'moveTo': MoveTo

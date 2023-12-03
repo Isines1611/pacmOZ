@@ -10,9 +10,8 @@ define
     % Helper => returns an integer between [0, N]
     fun {GetRandInt N} {OS.rand} mod N end
     
-    % TODO: Complete this concurrent functional agent (PacmOz/GhOzt)
     fun {Agent State}
-        % BRAIN FUNCTION 
+        % BRAIN FUNCTION / Move choice
         fun {CanMove X Y} % 0 = true / 1 = false (accepte vide + pacgums, pas mur)
             Tile = {Nth State.maze (Y * 28 + X)+1}  
         in
@@ -22,44 +21,15 @@ define
         end
         
         fun {IsCross X Y} % 0 = true (il y a cross) / 1 = false
-            if State.last == 'south' then
-                if {CanMove X+1 Y} == 0 then
-                    0
-                elseif {CanMove X-1 Y} == 0 then
-                    0
-                else 
-                    1
-                end
-            elseif State.last == 'north' then
-                if {CanMove X+1 Y} == 0 then
-                    0
-                elseif {CanMove X-1 Y} == 0 then
-                    0
-                else 
-                    1
+            if State.last == 'south' orelse State.last == 'north' then
+                if {CanMove X+1 Y} == 0 orelse {CanMove X-1 Y} == 0 then 0
+                else 1
                 end
             else % East / West
-                if {CanMove X Y+1} == 0 then
-                    0
-                elseif {CanMove X Y-1} == 0 then
-                    0
-                else
-                    1
+                if {CanMove X Y+1} == 0 orelse {CanMove X Y-1} == 0 then 0
+                else 1
                 end
             end
-        end
-
-        fun {GetRandDir X Y LastX LastY} % Aide de CheckPacgums
-            L
-
-            Xs = [X X X+1 X-1]
-            Ys = [Y+1 Y-1 Y Y]
-            Dir = ['south' 'north' 'east' 'west']
-
-            fun {CheckDirection D} {Nth Xs D} \= LastX andthen {Nth Ys D} \= LastY andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0 end
-        in
-            L = {List.filter [1 2 3 4] CheckDirection}
-            {Nth Dir {Nth L {GetRandInt {Length L}} +1}}
         end
 
         fun {IsPacgums X Y} 
@@ -68,50 +38,36 @@ define
             {HasFeature State.items Index} andthen State.items.Index.alive
         end
 
-        fun {CheckPacgums X Y} % Return une dir valid
-            if State.last == 'south' then % En venant du haut vers le bas
-                if {IsPacgums X Y+1} then
-                    'south'
-                elseif {IsPacgums X+1 Y} then
-                    'east'
-                elseif {IsPacgums X-1 Y} then
-                    'west'
-                else
-                    {GetRandDir X Y X Y-1}
-                end
-            elseif State.last == 'north' then % En venant du haut vers le bas
-                if {IsPacgums X Y-1} then
-                    'north'
-                elseif {IsPacgums X+1 Y} then
-                    'east'
-                elseif {IsPacgums X-1 Y} then
-                    'west'
-                else
-                    {GetRandDir X Y X Y+1}
-                end
-            elseif State.last == 'east' then % En venant de gauche a droit
-                if {IsPacgums X+1 Y} then
-                    'east'
-                elseif {IsPacgums X Y-1} then
-                    'north'
-                elseif {IsPacgums X Y+1} then
-                    'south'
-                else
-                    {GetRandDir X Y X-1 Y}
-                end
-            elseif State.last == 'west' then
-                if {IsPacgums X-1 Y} then
-                    'west'
-                elseif {IsPacgums X Y-1} then
-                    'north'
-                elseif {IsPacgums X Y+1} then
-                    'south'
-                else
-                    {GetRandDir X Y X+1 Y}
-                end
+        fun {GetOpposite Dir}
+            if Dir == 'south' then 'north'
+            elseif Dir == 'north' then 'south'
+            elseif Dir == 'east' then 'west'
+            else 'east'
             end
         end
 
+        fun {CheckCrossPacgum X Y} % return valid dir
+            DirValid
+            DirPacgum
+
+            Xs = [X X X+1 X-1]
+            Ys = [Y+1 Y-1 Y Y]
+            Dir = ['south' 'north' 'east' 'west']
+            
+            Opp = {GetOpposite State.last}
+
+            fun {CheckMove D} Opp \= {Nth Dir D} andthen {CanMove {Nth Xs D} {Nth Ys D}} == 0 end
+            fun {CheckPacgum D} Opp \= {Nth Dir D} andthen {IsPacgums {Nth Xs D} {Nth Ys D}} end
+        in
+            DirValid = {List.filter [1 2 3 4] CheckMove}
+            DirPacgum = {List.filter [1 2 3 4] CheckPacgum}
+
+            if {Length DirPacgum} =< 0 then % Vide
+                {Nth Dir {Nth DirValid {GetRandInt {Length DirValid}} +1}}
+            else % Pacgum
+                {Nth Dir {Nth DirPacgum {GetRandInt {Length DirPacgum}} +1}}
+            end
+        end
 
         %%% MSG MANAGMENT
         fun {PacgumSpawned pacgumSpawned(X Y)}
@@ -141,7 +97,7 @@ define
                 if Cross == 1 then
                     {Send State.gcport moveTo(State.id State.last)}
                 else
-                    thread NewDir = {CheckPacgums X Y} end
+                    thread NewDir = {CheckCrossPacgum X Y} end
                     {Wait NewDir}
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
@@ -167,7 +123,7 @@ define
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
-            Dispatch = {Label Msg}
+            Dispatch = {Label Msg} % Osef de pacpowSpawned, pacpowDispawned, pacpowDown
             Interface = interface(
                 'movedTo': MovedTo
                 'moveTo': MoveTo

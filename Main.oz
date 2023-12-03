@@ -34,10 +34,8 @@ define
             Index = Y*28 + X
             NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
         in
-            if State.items.ngum == 1 then {System.show 'one'}
-            elseif State.items.ngum == 0 then {System.show 'zero'}
-            end
-
+            if State.items.ngum == 1 then {System.show 'THE PACMOZ WIN WITH SCORE: 32000'} {Application.exit 0} end
+            
             {State.gui updateScore(320 - State.items.ngum)}
 
             NewState = {AdjoinAt State 'items' NewItems}
@@ -51,7 +49,6 @@ define
         
         % function to handle the movedTo message    % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
         fun {MovedTo movedTo(Id Type X Y)}
-            NewItems
             Index = Y * 28 + X
         in 
             if Type == 'ghost' then
@@ -65,7 +62,6 @@ define
                 end
 
                 if {HasFeature State.pacpow Index} andthen State.pacpow.Index.alive then
-                    {System.show 'pacpow'}
                     {State.gui dispawnPacpow(X Y)}
                 end
 
