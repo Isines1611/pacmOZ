@@ -157,9 +157,9 @@ define
         GhoZtPort 
         GhoZt2ID
         GhoZt2Port 
-        /*GhoZt3ID
+        GhoZt3ID
         GhoZt3Port 
-        GhoZt4ID
+        /*GhoZt4ID
         GhoZt4Por* */
         Track
 
@@ -169,16 +169,16 @@ define
         PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
         thread {GUI spawnBot('pacmoz' 1 1 PacmozID)} end
 
-        GhoZtPort = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZtID Port Maze)}
-        thread {GUI spawnBot('ghost' 26 27 GhoZtID)} end
+        GhoZtPort = {AgentManager.spawnBot 'pacmOz000Basic' init(GhoZtID Port Maze)}
+        thread {GUI spawnBot('pacmoz' 26 27 GhoZtID)} end
         
         GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
         thread {GUI spawnBot('ghost' 1 27 GhoZt2ID)} end
 
-        /*GhoZt3Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt3ID Port Maze)}
+        GhoZt3Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt3ID Port Maze)}
         thread {GUI spawnBot('ghost' 26 1 GhoZt3ID)} end
         
-        GhoZt4Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt4ID Port Maze)}
+        /*GhoZt4Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt4ID Port Maze)}
         thread {GUI spawnBot('ghost' 1 1 GhoZt4ID)} end
          */
         %Track = {InitAgents Input.bots 0 GUI Port Maze}
@@ -191,7 +191,7 @@ define
             'pacpow': pacpow('npow': 0)
             %'tracker': p(p(alive:true id:PacmozID port:PacmozPort))
             %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)
-            'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)
+            'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)
             %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)#p(alive:true id:GhoZt4ID port:GhoZt4Port)
         )}
 

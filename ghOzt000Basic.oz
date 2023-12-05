@@ -62,6 +62,16 @@ define
         in
             if State.id == Id then
 
+                {Record.forAll State.pacmoz proc {$ Pacmoz}
+                    if X == Pacmoz.x andthen Y == Pacmoz.y then % Collide
+                        if State.isScared then % Elimine fantome
+                            {System.show 'ghost die'}
+                        else % Elimine pacmoz
+                            {System.show 'pacmoz die'}
+                        end
+                    end
+                end}
+
                 thread Cross = {IsCross X Y} end
                 {Wait Cross}
 
@@ -73,7 +83,15 @@ define
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
             end
-            {Agent State}
+
+            
+            if Type == 'pacmoz' then NState NewState in
+                NewState = {Adjoin State.pacmoz pacmoz(Id: pos(alive:true x:X y:Y))}
+                NState = {AdjoinAt State 'pacmoz' NewState}
+
+                {Agent NState}
+            else {Agent State}
+            end
         end
 
         fun {MoveTo moveTo(Id Dir)}
@@ -89,6 +107,24 @@ define
             end
         end
 
+        fun {PacpowDispawned pacpowDispawned(X Y)}
+            NewState
+        in
+            NewState = {Adjoin State state(
+                'isScared': true 
+            )}
+            {Agent NewState}
+        end
+
+        fun {PacpowDown pacpowDown()}
+            NewState
+        in
+            NewState = {Adjoin State state(
+                'isScared': false 
+            )}
+            {Agent NewState}
+        end
+
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
@@ -96,6 +132,8 @@ define
             Interface = interface(
                 'movedTo': MovedTo
                 'moveTo': MoveTo
+                'pacpowDispawned': PacpowDispawned
+                'pacpowDown': PacpowDown
             )
         in
             if {HasFeature Interface Dispatch} then
@@ -121,6 +159,8 @@ define
             'maze': Maze
             'gcport': GCPort
             'last': 'south'
+            'pacmoz': null
+            'isScared': false
         )}
     in
         thread {Handler Stream Instance} end
