@@ -8,16 +8,20 @@ import
     Application
 define
      % Check the Adjoin and AdjoinAt function, documentation: (http://mozart2.org/mozart-v1/doc-1.4.0/base/record.html#section.records.records)
-
     proc {Broadcast Tracker Msg}
-        {Record.forAll Tracker proc {$ Tracked} if Tracked.alive then {Send Tracked.port Msg} end end}
+        {Record.forAll Tracker proc {$ Agent}
+            {System.show live(Agent.id Agent.alive Agent.port Agent.x Agent.y)}
+            if Agent.alive then
+                {Send Agent.port Msg}
+            end
+        end}
     end
 
     % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
     fun {GameController State}
         fun {MoveTo moveTo(Id Dir)}
             {State.gui moveBot(Id Dir)}
-            {Broadcast State.tracker moveTo(Id Dir)}
+            {Broadcast State.agent moveTo(Id Dir)}
             {GameController State}
         end
         % function to handle the PacGumSpawned message
@@ -25,7 +29,7 @@ define
             Index = Y * 28 + X
             NewItems = {Adjoin State.items items(Index: gum('alive': true) 'ngum': State.items.ngum + 1)}
         in
-            {Broadcast State.tracker pacgumSpawned(X Y)}
+            {Broadcast State.agent pacgumSpawned(X Y)}
             {GameController {AdjoinAt State 'items' NewItems}}
         end
 
@@ -43,7 +47,7 @@ define
                 'score': State.score + 100
             )} */
 
-            {Broadcast State.tracker pacgumDispawned(X Y)}
+            {Broadcast State.agent pacgumDispawned(X Y)}
             {GameController NewState}
         end
         
@@ -52,20 +56,21 @@ define
             Index = Y * 28 + X
             NewState
             NState
+
+            Te
+            C = {NewCell nil}
         in 
             {Record.forAll State.agent proc {$ Agent}
-                if Id \= Agent.id andthen Agent.type \= Type andthen X == Agent.x andthen Y == Agent.y then
+                if Id \= Agent.id andthen Agent.alive andthen Agent.type \= Type andthen X == Agent.x andthen Y == Agent.y then
                     if State.pacpowActive then % Elimine fantome
                         {System.show 'ghost die'}
+                        {System.show die(Agent)}
                     else % Elimine pacmoz
                         {System.show 'pacmoz die'}
+                        C := Id
                     end
                 end
             end}
-
-               /*  GhostIndex = {GhostExistsAt State X Y}
-                    if GhostIndex \= nil then
-                        {State.gui dispawnBot(Id)}  */
 
             if Type == 'pacmoz' then
                 if {HasFeature State.items Index} andthen State.items.Index.alive then
@@ -77,73 +82,29 @@ define
                 end
             end
 
-            {Broadcast State.tracker movedTo(Id Type X Y)}
-
-            NewState = {Adjoin State.agent agent(Id: pos(x:X y:Y type:Type id:Id))}
+            NewState = {Adjoin State.agent agent(Id: pos(x:X y:Y type:State.agent.Id.type id:Id alive:State.agent.Id.alive port:State.agent.Id.port maze:State.agent.Id.maze))}
             NState = {AdjoinAt State 'agent' NewState}
 
-            {GameController NState}
-        end
+            {Broadcast State.agent movedTo(Id Type X Y)}
 
-        fun {GhostExistsAt State X Y}
-            {FindGhostAt State X Y 1}
-        end
+            if @C \= nil then NextState in % Death
+                {System.show Te} 
+                NextState = {Adjoin State.agent agent(Id: pos(x:X y:Y type:State.agent.@C.type id:@C alive:false port:State.agent.@C.port maze:State.agent.@C.maze))}
+                
+                {State.gui dispawnBot(@C)}
 
-        fun {FindGhostAt State X Y Index}
-            Tracked
-        in
-            {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
-            if Index > {Width State.tracker} then
-                nil
+                {GameController {AdjoinAt State 'agent' NextState}}
             else
-                {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
-                Tracked = State.tracker.Index
-                {System.show Tracked}
-                {System.show Tracked.alive}
-                {System.show State.pacmoz}
-                if Tracked.alive andthen Tracked.id \= State.pacmoz.id then
-                    {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
-                    if Tracked.type == 'ghost' andthen Tracked.x == X andthen Tracked.y == Y then
-                        Index
-                    else
-                        {FindGhostAt State X Y Index+1}
-                    end
-                else
-                    {FindGhostAt State X Y Index+1}
-                end
+                {GameController NState}
             end
+
         end
-
-        % fun {RemovePacmoz State X Y}
-        %     NewPacmozList
-        %     NewState
-        % in
-        %     NewPacmozList = {RemovePacmozAt State.pacmoz X Y 1 nil}
-        %     NewState = {AdjoinAt State 'pacmoz' NewPacmozList}
-        %     {GameController NewState}
-        % end
-
-        % fun {RemovePacmozAt PacmozList X Y Index Acc}
-        %     Pacmoz
-        % in
-        %     if Index > {Length PacmozList} then
-        %         Acc
-        %     else
-        %         Pacmoz = {Nth PacmozList Index}
-        %         if Pacmoz.alive andthen Pacmoz.x == X andthen Pacmoz.y == Y then
-        %             {RemovePacmozAt PacmozList X Y Index+1 Acc}
-        %         else
-        %             {RemovePacmozAt PacmozList X Y Index+1 Pacmoz|Acc}
-        %         end
-        %     end
-        % end
 
         fun {PacpowSpawned pacpowSpawned(X Y)}
             Index = Y * 28 + X
             NewPows = {Adjoin State.pacpow pacpow(Index: pow('alive': true) 'npow': State.pacpow.npow + 1)}
         in
-            {Broadcast State.tracker spawnPacpow(X Y)}
-            {System.show State.pacpow}
+            {Broadcast State.agent spawnPacpow(X Y)}
             {GameController {AdjoinAt State 'pacpow' NewPows}}
         end
 
@@ -158,7 +119,7 @@ define
                 'pacpowActive': true
             )}
 
-            {Broadcast State.tracker pacpowDispawned(X Y)}
+            {Broadcast State.agent pacpowDispawned(X Y)}
             {GameController NewState}
         end
 
@@ -169,7 +130,7 @@ define
                 'pacpowActive': false
             )}
 
-            {Broadcast State.tracker pacpowDown()}
+            {Broadcast State.agent pacpowDown()}
             {State.gui setAllScared(false)}
             {GameController NewState}
         end
@@ -200,67 +161,49 @@ define
         {Handler Upcoming {Instance Msg}}
     end
 
-    fun {InitAgents Agents Bool GUI Port Maze}
+    fun {InitAgents Agents GUI Maze GCPort}
         fun {BuildAgent Bot}
             ID = {GUI spawnBot(Bot.1 Bot.3 Bot.4 $)}
-            PORT = {AgentManager.spawnBot Bot.2 init(ID Port Maze)}
+            PORT = {AgentManager.spawnBot Bot.2 init(ID GCPort Maze)}
         in
-            p(alive:true id:ID port:PORT)
+            agent(ID: pos(x:Bot.3 y:Bot.4 type:Bot.1 id:ID alive:true port:PORT maze:Maze))
         end
 
-        fun {AddAgents L Acc}
+        fun {AddAgents L S}
+            NewState
+            NState
+        in
             case L of H|T then
-                {AddAgents T Acc|{BuildAgent H}}
-            [] nil then Acc
+
+                NewState = {Adjoin S.agent {BuildAgent H}}
+                NState = {AdjoinAt S 'agent' NewState}
+
+                {AddAgents T NState}
+            [] nil then S
             end
         end
-
-        First
-        End
     in
-        case Agents of H|T then
-            First = {BuildAgent H}
-            End = {AddAgents T First}
-        [] nil then End
-        end
+        {AddAgents Agents agent(agent: unit)}
     end
 
     % TODO: Spawn the agents
     proc {StartGame}
         Stream
         Port = {NewPort Stream}
-        GUI = {Graphics.spawn Port 30}
-        PacmozID
-        PacmozPort
-        GhoZtID
-        GhoZtPort 
-        GhoZt2ID
-        GhoZt2Port 
-        GhoZt3ID
-        GhoZt3Port 
-        /*GhoZt4ID
-        GhoZt4Por* */
+        GUI = {Graphics.spawn Port 60}
+
+        Agents
         Track
 
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        PacmozPort = {AgentManager.spawnBot 'pacmOz000Basic' init(PacmozID Port Maze)}
-        thread {GUI spawnBot('pacmoz' 1 1 PacmozID)} end
+        Agents = Input.bots.1 | Input.bots.2.1 | nil
 
-        GhoZtPort = {AgentManager.spawnBot 'pacmOz000Basic' init(GhoZtID Port Maze)}
-        thread {GUI spawnBot('pacmoz' 26 27 GhoZtID)} end
-        
-        GhoZt2Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt2ID Port Maze)}
-        thread {GUI spawnBot('ghost' 1 27 GhoZt2ID)} end
+        Track = {InitAgents Agents GUI Maze Port}
+        {System.show t(Track)}
 
-        GhoZt3Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt3ID Port Maze)}
-        thread {GUI spawnBot('ghost' 26 1 GhoZt3ID)} end
-        
-        /*GhoZt4Port = {AgentManager.spawnBot 'ghOzt000Basic' init(GhoZt4ID Port Maze)}
-        thread {GUI spawnBot('ghost' 1 1 GhoZt4ID)} end
-         */
-        %Track = {InitAgents Input.bots 0 GUI Port Maze}
+        {System.show t2(Track.agent)}
 
         Instance = {GameController state(
             'gui': GUI
@@ -268,13 +211,10 @@ define
             'score': 0
             'items': items('ngum': 0)
             'pacpow': pacpow('npow': 0)
-            'agent': unit
-            'pacpowActive': false
-            %'tracker': p(p(alive:true id:PacmozID port:PacmozPort))
-            %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)
-            'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)
-            %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)#p(alive:true id:GhoZt4ID port:GhoZt4Port)
-        )}
+            'pacpowActive': true
+
+            'agent': Track.agent
+         )}
 
     in
         thread {Handler Stream Instance} end
