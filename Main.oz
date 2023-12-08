@@ -50,13 +50,24 @@ define
         % function to handle the movedTo message    % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
         fun {MovedTo movedTo(Id Type X Y)}
             Index = Y * 28 + X
+            NewState
+            NState
         in 
-            if Type == 'ghost' then
-                {Broadcast State.tracker movedTo(Id Type X Y)}
-                {GameController State}
-            elseif Type == 'pacmoz' then
-                {Broadcast State.tracker movedTo(Id Type X Y)}
+            {Record.forAll State.agent proc {$ Agent}
+                if Id \= Agent.id andthen Agent.type \= Type andthen X == Agent.x andthen Y == Agent.y then
+                    if State.pacpowActive then % Elimine fantome
+                        {System.show 'ghost die'}
+                    else % Elimine pacmoz
+                        {System.show 'pacmoz die'}
+                    end
+                end
+            end}
 
+               /*  GhostIndex = {GhostExistsAt State X Y}
+                    if GhostIndex \= nil then
+                        {State.gui dispawnBot(Id)}  */
+
+            if Type == 'pacmoz' then
                 if {HasFeature State.items Index} andthen State.items.Index.alive then
                     {State.gui dispawnPacgum(X Y)}
                 end
@@ -64,13 +75,68 @@ define
                 if {HasFeature State.pacpow Index} andthen State.pacpow.Index.alive then
                     {State.gui dispawnPacpow(X Y)}
                 end
+            end
 
-                {GameController State}
-            
+            {Broadcast State.tracker movedTo(Id Type X Y)}
+
+            NewState = {Adjoin State.agent agent(Id: pos(x:X y:Y type:Type id:Id))}
+            NState = {AdjoinAt State 'agent' NewState}
+
+            {GameController NState}
+        end
+
+        fun {GhostExistsAt State X Y}
+            {FindGhostAt State X Y 1}
+        end
+
+        fun {FindGhostAt State X Y Index}
+            Tracked
+        in
+            {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
+            if Index > {Width State.tracker} then
+                nil
             else
-                {GameController State}
+                {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
+                Tracked = State.tracker.Index
+                {System.show Tracked}
+                {System.show Tracked.alive}
+                {System.show State.pacmoz}
+                if Tracked.alive andthen Tracked.id \= State.pacmoz.id then
+                    {System.show log('SUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')}
+                    if Tracked.type == 'ghost' andthen Tracked.x == X andthen Tracked.y == Y then
+                        Index
+                    else
+                        {FindGhostAt State X Y Index+1}
+                    end
+                else
+                    {FindGhostAt State X Y Index+1}
+                end
             end
         end
+
+        % fun {RemovePacmoz State X Y}
+        %     NewPacmozList
+        %     NewState
+        % in
+        %     NewPacmozList = {RemovePacmozAt State.pacmoz X Y 1 nil}
+        %     NewState = {AdjoinAt State 'pacmoz' NewPacmozList}
+        %     {GameController NewState}
+        % end
+
+        % fun {RemovePacmozAt PacmozList X Y Index Acc}
+        %     Pacmoz
+        % in
+        %     if Index > {Length PacmozList} then
+        %         Acc
+        %     else
+        %         Pacmoz = {Nth PacmozList Index}
+        %         if Pacmoz.alive andthen Pacmoz.x == X andthen Pacmoz.y == Y then
+        %             {RemovePacmozAt PacmozList X Y Index+1 Acc}
+        %         else
+        %             {RemovePacmozAt PacmozList X Y Index+1 Pacmoz|Acc}
+        %         end
+        %     end
+        % end
 
         fun {PacpowSpawned pacpowSpawned(X Y)}
             Index = Y * 28 + X
@@ -84,15 +150,28 @@ define
         fun {PacpowDispawned pacpowDispawned(X Y)}
             Index = Y * 28 + X
             NewPows = {Adjoin State.pacpow pacpow(Index: pow('alive': false) 'npow': State.pacpow.npow - 1)}
+            NewState
+            NState
         in
+            NState = {AdjoinAt State 'pacpow' NewPows}
+            NewState = {Adjoin NState state(
+                'pacpowActive': true
+            )}
+
             {Broadcast State.tracker pacpowDispawned(X Y)}
-            {GameController {AdjoinAt State 'pacpow' NewPows}}
+            {GameController NewState}
         end
 
         fun {PacpowDown pacpowDown()}
+            NewState
+        in
+            NewState = {Adjoin State state(
+                'pacpowActive': false
+            )}
+
             {Broadcast State.tracker pacpowDown()}
             {State.gui setAllScared(false)}
-            {GameController State}
+            {GameController NewState}
         end
     in
         fun {$ Msg}
@@ -117,7 +196,7 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
-        {System.show handler(Msg|Upcoming)}
+        %{System.show handler(Msg|Upcoming)}
         {Handler Upcoming {Instance Msg}}
     end
 
@@ -189,6 +268,8 @@ define
             'score': 0
             'items': items('ngum': 0)
             'pacpow': pacpow('npow': 0)
+            'agent': unit
+            'pacpowActive': false
             %'tracker': p(p(alive:true id:PacmozID port:PacmozPort))
             %'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)
             'tracker': p(alive:true id:GhoZtID port:GhoZtPort)#p(alive:true id:PacmozID port:PacmozPort)#p(alive:true id:GhoZt2ID port:GhoZt2Port)#p(alive:true id:GhoZt3ID port:GhoZt3Port)

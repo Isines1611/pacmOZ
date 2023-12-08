@@ -62,16 +62,6 @@ define
         in
             if State.id == Id then
 
-                {Record.forAll State.pacmoz proc {$ Pacmoz}
-                    if X == Pacmoz.x andthen Y == Pacmoz.y then % Collide
-                        if State.isScared then % Elimine fantome
-                            {System.show 'ghost die'}
-                        else % Elimine pacmoz
-                            {System.show 'pacmoz die'}
-                        end
-                    end
-                end}
-
                 thread Cross = {IsCross X Y} end
                 {Wait Cross}
 
@@ -105,24 +95,6 @@ define
             else
                 {Agent State}
             end
-        end
-
-        fun {PacpowDispawned pacpowDispawned(X Y)}
-            NewState
-        in
-            NewState = {Adjoin State state(
-                'isScared': true 
-            )}
-            {Agent NewState}
-        end
-
-        fun {PacpowDown pacpowDown()}
-            NewState
-        in
-            NewState = {Adjoin State state(
-                'isScared': false 
-            )}
-            {Agent NewState}
         end
 
     in
@@ -159,8 +131,6 @@ define
             'maze': Maze
             'gcport': GCPort
             'last': 'south'
-            'pacmoz': null
-            'isScared': false
         )}
     in
         thread {Handler Stream Instance} end
