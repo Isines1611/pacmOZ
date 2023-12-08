@@ -73,15 +73,7 @@ define
                     {Send State.gcport moveTo(State.id NewDir)}
                 end
             end
-
-            
-            if Type == 'pacmoz' then NState NewState in
-                NewState = {Adjoin State.pacmoz pacmoz(Id: pos(alive:true x:X y:Y))}
-                NState = {AdjoinAt State 'pacmoz' NewState}
-
-                {Agent NState}
-            else {Agent State}
-            end
+            {Agent State}
         end
 
         fun {MoveTo moveTo(Id Dir)}
@@ -104,8 +96,6 @@ define
             Interface = interface(
                 'movedTo': MovedTo
                 'moveTo': MoveTo
-                'pacpowDispawned': PacpowDispawned
-                'pacpowDown': PacpowDown
             )
         in
             if {HasFeature Interface Dispatch} then
