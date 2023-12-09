@@ -38,3 +38,6 @@ graphics:
 
 ghost:
 	$(OZC) -c ghOzt000Basic.oz -o "GhOzt000Basic.ozf"
+
+input:
+	$(OZC) -c Input.oz -o "Input.ozf"

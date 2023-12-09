@@ -101,7 +101,7 @@ define
         attr 'scared'
 
         meth init(Id X Y)
-            Bot, init(Id 'ghost' GHOST_DOWN_SPRITE X Y)
+            Bot, init(Id 'ghozt' GHOST_DOWN_SPRITE X Y)
             'scared' := false
         end
 
@@ -223,7 +223,7 @@ define
             GameObjects = {Dictionary.items @gameObjects}
         in
             for Gobj in GameObjects do
-                if {Gobj getType($)} == 'ghost' then
+                if {Gobj getType($)} == 'ghozt' then
                     {Gobj setScared(Value)}
                 end
             end

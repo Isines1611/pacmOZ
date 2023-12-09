@@ -10,7 +10,6 @@ define
      % Check the Adjoin and AdjoinAt function, documentation: (http://mozart2.org/mozart-v1/doc-1.4.0/base/record.html#section.records.records)
     proc {Broadcast Tracker Msg}
         {Record.forAll Tracker proc {$ Agent}
-            {System.show live(Agent.id Agent.alive Agent.port Agent.x Agent.y)}
             if Agent.alive then
                 {Send Agent.port Msg}
             end
@@ -24,7 +23,7 @@ define
             {Broadcast State.agent moveTo(Id Dir)}
             {GameController State}
         end
-        % function to handle the PacGumSpawned message
+       
         fun {PacgumSpawned pacgumSpawned(X Y)}
             Index = Y * 28 + X
             NewItems = {Adjoin State.items items(Index: gum('alive': true) 'ngum': State.items.ngum + 1)}
@@ -34,6 +33,7 @@ define
         end
 
         fun {PacgumDispawned pacgumDispawned(X Y)}
+            FState
             NewState
             Index = Y*28 + X
             NewItems = {Adjoin State.items items(Index: gum('alive': false) 'ngum': State.items.ngum-1)}
@@ -43,12 +43,12 @@ define
             {State.gui updateScore(320 - State.items.ngum)}
 
             NewState = {AdjoinAt State 'items' NewItems}
-            /*NewState = {Adjoin NewState state(
+            FState = {Adjoin NewState state(
                 'score': State.score + 100
-            )} */
+            )}
 
             {Broadcast State.agent pacgumDispawned(X Y)}
-            {GameController NewState}
+            {GameController FState}
         end
         
         % function to handle the movedTo message    % TODO: Complete this concurrent functional agent to handle all the message-passing between the GUI and the Agents
@@ -57,18 +57,19 @@ define
             NewState
             NState
 
-            Te
-            C = {NewCell nil}
-        in 
+            Dead
+        in  
+            {CheckWin}
+
             {Record.forAll State.agent proc {$ Agent}
-                if Id \= Agent.id andthen Agent.alive andthen Agent.type \= Type andthen X == Agent.x andthen Y == Agent.y then
-                    if State.pacpowActive then % Elimine fantome
-                        {System.show 'ghost die'}
-                        {System.show die(Agent)}
-                    else % Elimine pacmoz
-                        {System.show 'pacmoz die'}
-                        C := Id
+                if Id \= Agent.id andthen Agent.alive andthen X == Agent.x andthen Y == Agent.y andthen Agent.type \= Type then
+
+                    if Type == 'pacmoz' andthen State.pacpowActive then Dead = Agent.id % Elimine fantome 
+                    elseif Type == 'pacmoz' then Dead = Id % Elimine pacmoz
+                    elseif Type == 'ghozt' andthen State.pacpowActive then Dead = Id % Elimine fantome
+                    else Dead = Agent.id % Elimine pacmoz
                     end
+
                 end
             end}
 
@@ -87,13 +88,29 @@ define
 
             {Broadcast State.agent movedTo(Id Type X Y)}
 
-            if @C \= nil then NextState in % Death
-                {System.show Te} 
-                NextState = {Adjoin State.agent agent(Id: pos(x:X y:Y type:State.agent.@C.type id:@C alive:false port:State.agent.@C.port maze:State.agent.@C.maze))}
-                
-                {State.gui dispawnBot(@C)}
+            if {Value.isDet Dead} then NextState FState TState in 
+                NextState = {Adjoin State.agent agent(Dead: pos(x:X y:Y type:State.agent.Dead.type id:Dead alive:false port:State.agent.Dead.port maze:State.agent.Dead.maze))}
+                TState = {AdjoinAt State 'agent' NextState}
 
-                {GameController {AdjoinAt State 'agent' NextState}}
+                if State.agent.Dead.type == 'pacmoz' then % Pacmoz Eliminated
+                    
+                    FState = {Adjoin TState state(
+                        'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead+1 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead)
+                        
+                    )}
+                    
+                else % Ghozt eliminated
+                    
+                    FState = {Adjoin TState state(
+                        'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead+1)
+                        'score': State.score + 500
+                    )}
+                               
+                end
+
+                {State.gui dispawnBot(Dead)}
+
+                {GameController FState}
             else
                 {GameController NState}
             end
@@ -134,6 +151,14 @@ define
             {State.gui setAllScared(false)}
             {GameController NewState}
         end
+
+        proc {CheckWin}
+            if State.lives.pacmozDead == State.lives.pacmozTotal then
+                {System.show log('THE GHOZT TEAM WIN')} {Application.exit 0}
+            elseif State.lives.ghoztTotal == State.lives.ghoztDead then
+                {System.show log('THE PACMOZ TEAM WIN WITH SCORE:' State.score)} {Application.exit 0}
+            end
+        end
     in
         fun {$ Msg}
             Dispatch = {Label Msg}
@@ -169,7 +194,7 @@ define
             agent(ID: pos(x:Bot.3 y:Bot.4 type:Bot.1 id:ID alive:true port:PORT maze:Maze))
         end
 
-        fun {AddAgents L S}
+        fun {AddAgents L S PT GT}
             NewState
             NState
         in
@@ -178,19 +203,22 @@ define
                 NewState = {Adjoin S.agent {BuildAgent H}}
                 NState = {AdjoinAt S 'agent' NewState}
 
-                {AddAgents T NState}
-            [] nil then S
+                if H.1 == 'pacmoz' then {AddAgents T NState PT+1 GT}
+                else {AddAgents T NState PT GT+1}
+                end
+
+            [] nil then [S PT GT]
             end
         end
     in
-        {AddAgents Agents agent(agent: unit)}
+        {AddAgents Agents agent(agent: unit) 0 0}
     end
 
     % TODO: Spawn the agents
     proc {StartGame}
         Stream
         Port = {NewPort Stream}
-        GUI = {Graphics.spawn Port 60}
+        GUI = {Graphics.spawn Port 15}
 
         Agents
         Track
@@ -198,12 +226,9 @@ define
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        Agents = Input.bots.1 | Input.bots.2.1 | Input.bots.2.2.1 | nil
+        Agents = Input.bots.1 | Input.bots.2.1 | Input.bots.2.2.1 | Input.bots.2.2.2.1 | nil
 
         Track = {InitAgents Agents GUI Maze Port}
-        {System.show t(Track)}
-
-        {System.show t2(Track.agent)}
 
         Instance = {GameController state(
             'gui': GUI
@@ -211,10 +236,11 @@ define
             'score': 0
             'items': items('ngum': 0)
             'pacpow': pacpow('npow': 0)
-            'pacpowActive': false
+            'pacpowActive': true
 
-            'agent': Track.agent
-         )}
+            'lives': lives('pacmozTotal':Track.2.1 'pacmozDead':0 'ghoztTotal':Track.2.2.1 'ghoztDead':0)
+            'agent': Track.1.agent
+        )}
 
     in
         thread {Handler Stream Instance} end

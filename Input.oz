@@ -5,9 +5,10 @@ export
     'bots': Bots
 define
     Bots = [
-        bot('pacmoz' 'pacmOz000Basic' 1 1)
-        bot('ghozt' 'ghOzt000Basic' 26 27)
-        bot('ghozt' 'ghOzt000Basic' 1 27)
+        bot('pacmoz' 'pacmOz000Basic' 2 1)
+        bot('ghozt' 'ghOzt000Basic' 25 27)
+        bot('pacmoz' 'pacmOz000Basic' 23 27)
+        bot('ghozt' 'ghOzt000Basic' 4 1)
     ]
 
     Map = [
