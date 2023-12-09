@@ -6,6 +6,7 @@ import
     Graphics
     AgentManager
     Application
+    QTk at 'x-oz://system/wp/QTk.ozf'
 define
      % Check the Adjoin and AdjoinAt function, documentation: (http://mozart2.org/mozart-v1/doc-1.4.0/base/record.html#section.records.records)
     proc {Broadcast Tracker Msg}
@@ -64,10 +65,18 @@ define
             {Record.forAll State.agent proc {$ Agent}
                 if Id \= Agent.id andthen Agent.alive andthen X == Agent.x andthen Y == Agent.y andthen Agent.type \= Type then
 
-                    if Type == 'pacmoz' andthen State.pacpowActive then Dead = Agent.id % Elimine fantome 
-                    elseif Type == 'pacmoz' then Dead = Id % Elimine pacmoz
-                    elseif Type == 'ghozt' andthen State.pacpowActive then Dead = Id % Elimine fantome
-                    else Dead = Agent.id % Elimine pacmoz
+                    if Type == 'pacmoz' andthen State.pacpowActive then
+                        Dead = Agent.id
+                        {Send State.agent shutdown()} 
+                    elseif Type == 'pacmoz' then
+                        Dead = Id
+                        {Send State.agent shutdown()} 
+                    elseif Type == 'ghozt' andthen State.pacpowActive then
+                        Dead = Id
+                        {Send State.agent shutdown()} 
+                    else
+                        Dead = Agent.id
+                        {Send State.agent shutdown()} 
                     end
 
                 end
@@ -182,7 +191,7 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
-        %{System.show handler(Msg|Upcoming)}
+        {System.show handler(Msg|Upcoming)}
         {Handler Upcoming {Instance Msg}}
     end
 
@@ -214,11 +223,22 @@ define
         {AddAgents Agents agent(agent: unit) 0 0}
     end
 
+    % EXTENSIONS
+    fun {ConfigureKeys AgentId UpKey DownKey LeftKey RightKey}
+        KeyConfig = agent(
+            'id': AgentId
+            'keys': keys('up': UpKey 'down': DownKey 'left': LeftKey 'right': RightKey)
+        )
+    in
+        KeyConfig
+    end
+
     % TODO: Spawn the agents
     proc {StartGame}
         Stream
         Port = {NewPort Stream}
-        GUI = {Graphics.spawn Port 15}
+        GUI = {Graphics.spawn Port 60}
+        PacmozKeys
 
         Agents
         Track
@@ -226,9 +246,16 @@ define
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        Agents = Input.bots.1 | Input.bots.2.1 | Input.bots.2.2.1 | Input.bots.2.2.2.1 | nil
+        Agents = Input.bots.1 | Input.bots.2.1 | nil
 
         Track = {InitAgents Agents GUI Maze Port}
+
+        PacmozKeys = {QTk.build lr(
+            button(text:"Move Up" action:proc{$} {Send Track.1.agent moveTo('pacmoz' 'up')} end)
+            button(text:"Move Down" action:proc{$} {Send Track.1.agent moveTo('pacmoz' 'down')} end)
+            button(text:"Move Left" action:proc{$} {Send Track.1.agent moveTo('pacmoz' 'left')} end)
+            button(text:"Move Right" action:proc{$} {Send Track.1.agent moveTo('pacmoz' 'right')} end)
+        )}
 
         Instance = {GameController state(
             'gui': GUI
@@ -243,6 +270,7 @@ define
         )}
 
     in
+        thread {PacmozKeys show} end
         thread {Handler Stream Instance} end
     end
 
