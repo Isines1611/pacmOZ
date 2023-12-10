@@ -41,3 +41,6 @@ ghost:
 
 input:
 	$(OZC) -c Input.oz -o "Input.ozf"
+
+manager:
+	$(OZC) -c AgentManager.oz

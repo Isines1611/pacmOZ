@@ -21,7 +21,6 @@ define
     fun {GameController State}
         fun {MoveTo moveTo(Id Dir)}
             {State.gui moveBot(Id Dir)}
-            {Broadcast State.agent moveTo(Id Dir)}
             {GameController State}
         end
        
@@ -65,18 +64,10 @@ define
             {Record.forAll State.agent proc {$ Agent}
                 if Id \= Agent.id andthen Agent.alive andthen X == Agent.x andthen Y == Agent.y andthen Agent.type \= Type then
 
-                    if Type == 'pacmoz' andthen State.pacpowActive then
-                        Dead = Agent.id
-                        {Send State.agent shutdown()} 
-                    elseif Type == 'pacmoz' then
-                        Dead = Id
-                        {Send State.agent shutdown()} 
-                    elseif Type == 'ghozt' andthen State.pacpowActive then
-                        Dead = Id
-                        {Send State.agent shutdown()} 
-                    else
-                        Dead = Agent.id
-                        {Send State.agent shutdown()} 
+                    if Type == 'pacmoz' andthen State.pacpowActive then Dead = Agent.id
+                    elseif Type == 'pacmoz' then Dead = Id
+                    elseif Type == 'ghozt' andthen State.pacpowActive then Dead = Id
+                    else Dead = Agent.id
                     end
 
                 end
@@ -98,14 +89,15 @@ define
             {Broadcast State.agent movedTo(Id Type X Y)}
 
             if {Value.isDet Dead} then NextState FState TState in 
+                {Send State.agent.Dead.port shutdown()}
+
                 NextState = {Adjoin State.agent agent(Dead: pos(x:X y:Y type:State.agent.Dead.type id:Dead alive:false port:State.agent.Dead.port maze:State.agent.Dead.maze))}
                 TState = {AdjoinAt State 'agent' NextState}
 
                 if State.agent.Dead.type == 'pacmoz' then % Pacmoz Eliminated
                     
                     FState = {Adjoin TState state(
-                        'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead+1 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead)
-                        
+                        'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead+1 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead)  
                     )}
                     
                 else % Ghozt eliminated
@@ -130,7 +122,7 @@ define
             Index = Y * 28 + X
             NewPows = {Adjoin State.pacpow pacpow(Index: pow('alive': true) 'npow': State.pacpow.npow + 1)}
         in
-            {Broadcast State.agent spawnPacpow(X Y)}
+            {Broadcast State.agent pacpowSpawned(X Y)}
             {GameController {AdjoinAt State 'pacpow' NewPows}}
         end
 
@@ -238,13 +230,13 @@ define
                 'pacpowDown': PacpowDown
                 'tellTeam': TellTeam
                 'haunt': Haunt
-                'incerse': Incense
+                'incense': Incense
             )
         in
             if {HasFeature Interface Dispatch} then
                 {Interface.Dispatch Msg}
             else
-                {System.show log('Unhandle message' Dispatch)}
+                {System.show mainLog('Unhandle message' Dispatch)}
                 {GameController State}
             end
         end

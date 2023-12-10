@@ -59,6 +59,7 @@ define
         fun {MovedTo movedTo(Id Type X Y)}
             NewDir
             Cross
+            NewState
         in
             if State.id == Id then
 
@@ -66,36 +67,26 @@ define
                 {Wait Cross}
 
                 if Cross == 1 then
-                    {Send State.gcport moveTo(State.id State.last)}
+                    {Send State.gcport moveTo(State.id State.last)} {Agent State}
                 else
                     thread NewDir = {GetNextDir X Y} end
                     {Wait NewDir} 
                     {Send State.gcport moveTo(State.id NewDir)}
+
+                    NewState = {Adjoin State state(
+                        'last': NewDir
+                    )}
+                    {Agent NewState}
                 end
-            end
-            {Agent State}
-        end
-
-        fun {MoveTo moveTo(Id Dir)}
-            NewState
-        in
-            if State.id == Id andthen State.last \= Dir then
-                NewState = {Adjoin State state(
-                    'last': Dir 
-                )}
-                {Agent NewState}
-            else
-                {Agent State}
+            else {Agent State}
             end
         end
-
     in
         % TODO: complete the interface and discard and report unknown messages
         fun {$ Msg}
             Dispatch = {Label Msg} % Osef de pacgumSpawned, pacgumDispawned, pacpowSpawned, pacpowDispawned, pacpowDown
             Interface = interface(
                 'movedTo': MovedTo
-                'moveTo': MoveTo
             )
         in
             if {HasFeature Interface Dispatch} then
