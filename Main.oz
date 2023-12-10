@@ -168,6 +168,63 @@ define
                 {System.show log('THE PACMOZ TEAM WIN WITH SCORE:' State.score)} {Application.exit 0}
             end
         end
+
+        fun {TellTeam tellTeam(Id Rec)}
+            {Record.forAll State.agent proc {$ Agent}
+                if Agent.type == State.agent.Id.type then
+                    {Send Agent.port Rec}
+                end
+            end}
+
+            {GameController State}
+        end
+
+        fun {Haunt haunt(PId GId)}
+            NewState
+            NState
+            FState
+        in
+            if State.agent.PId.alive andthen State.agent.GId.alive andthen State.agent.PId.type \= State.agent.GId.type andthen State.agent.PId.x == State.agent.GId.x andthen State.agent.PId.x == State.agent.GId.x then
+
+                NewState = {Adjoin State.agent agent(PId: pos(x:State.agent.PId.x y:State.agent.PId.y type:State.agent.PId.type id:PId alive:false port:State.agent.PId.port maze:State.agent.PId.maze))}
+                NState = {AdjoinAt State 'agent' NewState}
+
+                FState = {Adjoin NState state(
+                    'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead+1 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead)
+                )}
+
+                {Broadcast State.agent gotHaunted(PId)}
+                {Send State.agent.PId.port shutdown()}
+                
+                {GameController FState}
+
+            else {Send State.agent.PId.port invalidAction()} {GameController State}
+            end
+        end
+
+        fun {Incense incense(PId GId)}
+            NewState
+            NState
+            FState
+        in
+            if State.agent.PId.alive andthen State.agent.GId.alive andthen State.agent.PId.type \= State.agent.GId.type andthen State.agent.PId.x == State.agent.GId.x andthen State.agent.PId.x == State.agent.GId.x then
+                
+                NewState = {Adjoin State.agent agent(PId: pos(x:State.agent.PId.x y:State.agent.PId.y type:State.agent.PId.type id:PId alive:false port:State.agent.PId.port maze:State.agent.PId.maze))}
+                NState = {AdjoinAt State 'agent' NewState}
+
+                FState = {Adjoin NState state(
+                    'lives': lives('pacmozTotal':State.lives.pacmozTotal 'pacmozDead':State.lives.pacmozDead 'ghoztTotal':State.lives.ghoztTotal 'ghoztDead':State.lives.ghoztDead+1)
+                    'score': State.score + 500
+                )}
+
+                {Broadcast State.agent gotIncensed(PId)}
+                {Send State.agent.PId.port shutdown()}
+                
+                {GameController FState}
+
+            else {Send State.agent.PId.port invalidAction()} {GameController State}
+            end
+        end
     in
         fun {$ Msg}
             Dispatch = {Label Msg}
@@ -179,6 +236,9 @@ define
                 'pacpowSpawned': PacpowSpawned
                 'pacpowDispawned': PacpowDispawned
                 'pacpowDown': PacpowDown
+                'tellTeam': TellTeam
+                'haunt': Haunt
+                'incerse': Incense
             )
         in
             if {HasFeature Interface Dispatch} then
@@ -191,7 +251,7 @@ define
     end
 
     proc {Handler Msg | Upcoming Instance}
-        {System.show handler(Msg|Upcoming)}
+        %{System.show handler(Msg|Upcoming)}
         {Handler Upcoming {Instance Msg}}
     end
 
