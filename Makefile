@@ -20,15 +20,16 @@ all:
 	$(OZC) -c Graphics.oz
 	$(OZC) -c Main.oz
 
-	$(OZC) -c pacmOz000Basic.oz -o "PacmOz000Basic.ozf"
-	$(OZC) -c ghOzt000Basic.oz -o "GhOzt000Basic.ozf"
+	$(OZC) -c pacmOz117Basic.oz -o "PacmOz117Basic.ozf"
+	$(OZC) -c ghOzt117Hunter.oz -o "GhOzt117Hunter.ozf"
+	$(OZC) -c ghOzt117Basic.oz -o "GhOzt117Basic.ozf"
 run:
 	$(OZENGINE) Main.ozf
 clean:
 	rm *.ozf
 
 agent:
-	$(OZC) -c pacmOz000Basic.oz -o "PacmOz000Basic.ozf"
+	$(OZC) -c pacmOz117Basic.oz -o "PacmOz117Basic.ozf"
 	
 main:
 	$(OZC) -c Main.oz -o "Main.ozf"	
@@ -37,10 +38,13 @@ graphics:
 	$(OZC) -c Graphics.oz -o "Graphics.ozf"	
 
 ghost:
-	$(OZC) -c ghOzt000Basic.oz -o "GhOzt000Basic.ozf"
+	$(OZC) -c ghOzt117Basic.oz -o "GhOzt117Basic.ozf"
 
 input:
 	$(OZC) -c Input.oz -o "Input.ozf"
 
 manager:
 	$(OZC) -c AgentManager.oz
+
+hunt:
+	$(OZC) -c ghOzt117Hunter.oz -o "GhOzt117Hunter.ozf"

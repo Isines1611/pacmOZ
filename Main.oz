@@ -298,7 +298,7 @@ define
         Maze = {Input.genMaze}
         {GUI buildMaze(Maze)}
 
-        Agents = Input.bots.1 | Input.bots.2.1 | nil
+        Agents = Input.bots.1 | Input.bots.2.1 | Input.bots.2.2.1 | nil
 
         Track = {InitAgents Agents GUI Maze Port}
 
@@ -315,7 +315,7 @@ define
             'score': 0
             'items': items('ngum': 0)
             'pacpow': pacpow('npow': 0)
-            'pacpowActive': true
+            'pacpowActive': false
 
             'lives': lives('pacmozTotal':Track.2.1 'pacmozDead':0 'ghoztTotal':Track.2.2.1 'ghoztDead':0)
             'agent': Track.1.agent

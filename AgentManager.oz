@@ -2,8 +2,9 @@ functor
 
 import
     System
-    GhOzt000Basic
-    PacmOz000Basic
+    GhOzt117Hunter
+    GhOzt117Basic
+    PacmOz117Basic
 export
     'spawnBot': SpawnBot
 define
@@ -12,8 +13,9 @@ define
     fun {SpawnBot BotName Init}
         % Init => init(Id GameControllerPort Maze)
         case BotName of
-            'ghOzt000Basic' then {GhOzt000Basic.getPort Init}
-        []  'pacmOz000Basic' then {PacmOz000Basic.getPort Init}
+            'ghOzt117Hunter' then {GhOzt117Hunter.getPort Init}
+        []  'pacmOz117Basic' then {PacmOz117Basic.getPort Init}
+        []  'ghOzt117Basic' then {GhOzt117Basic.getPort Init}
         else
             {System.show 'Unknown BotName'}
             false

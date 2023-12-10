@@ -2,7 +2,6 @@ functor
 
 import
     OS
-    System
 export
     'getPort': SpawnAgent
 define
